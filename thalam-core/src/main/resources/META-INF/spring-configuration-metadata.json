@@ -8,6 +8,12 @@
 			"description": "Context path of the application",
 			"type": "java.lang.String",
 			"sourceType": "com.naqiran.thalam.configuration.AggregatorCoreConfiguration"
+		},
+		{
+			"name": "aggregator.cache.enabled",
+			"description": "Enable the cache",
+			"type": "java.lang.String",
+			"sourceType": "com.naqiran.thalam.configuration.AggregatorCoreConfiguration"
 		}
 	]
 }

@@ -1,7 +1,0 @@
-server:
-  port: 8080
-  use-forward-headers: true  
-
-aggregator:
-  context:
-    path: "/aggregator"

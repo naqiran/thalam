@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+
+com.naqiran.thalam.annotations.EnableServiceAggregator=\
+com.naqiran.thalam.configuration.AggregatorAutoConfiguration
