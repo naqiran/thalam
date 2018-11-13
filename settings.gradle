@@ -1,0 +1,8 @@
+/*
+ * Copyright (c) 2018 Nakkeran Annamalai
+ */
+rootProject.name = 'thalam'
+
+include 'thalam-core'
+
+project(':thalam-core').projectDir = "$rootDir/thalam-core" as File
