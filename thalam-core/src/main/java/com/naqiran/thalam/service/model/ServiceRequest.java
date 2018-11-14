@@ -8,5 +8,6 @@ import lombok.Data;
 public class ServiceRequest {
     private String sequenceId;
     private Map<String,Object> parameters;
+    private Map<String,String> pathParameters;
     private Map<String,String> headers;
 }

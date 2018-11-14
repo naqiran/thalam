@@ -1,6 +1,16 @@
 {
 	"groups":[
-		{"name":"aggregator"}
+		{
+			"name":"aggregator",
+			"sourceType": "com.naqiran.thalam.configuration.AggregatorCoreConfiguration"
+		}, 
+		{
+			"name": "aggregator.dictionary",
+			"sourceType": "com.naqiran.thalam.configuration.ServiceDictionary"
+		}, 
+		{
+			"name": "aggregator.context"
+		}
 	],
 	"properties": [
 		{
@@ -14,6 +24,12 @@
 			"description": "Enable the cache",
 			"type": "java.lang.String",
 			"sourceType": "com.naqiran.thalam.configuration.AggregatorCoreConfiguration"
+		},
+		{
+			"name": "aggregator.serviceDictionary.description",
+			"description": "Service Dictionary Description",
+			"type": "java.lang.String",
+			"sourceType": "com.naqiran.thalam.configuration.ServiceDictionary"
 		}
 	]
 }

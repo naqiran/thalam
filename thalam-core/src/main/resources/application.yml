@@ -5,3 +5,9 @@ server:
 aggregator:
   context:
     path: "/aggregator"
+  dictionary:
+    name: Sample Description
+    services:
+      - id: "first-service"
+      - id: "second-service"
+        description: "Test Description"

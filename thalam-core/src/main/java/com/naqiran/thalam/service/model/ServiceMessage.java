@@ -8,4 +8,5 @@ import lombok.Data;
 @Data
 public class ServiceMessage {
     private String message;
+    private ServiceMessageType type = ServiceMessageType.INFO;
 }
