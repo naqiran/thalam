@@ -1,6 +1,5 @@
 package com.naqiran.thalam.web;
 
-
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +20,11 @@ import com.naqiran.thalam.service.model.ServiceResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Default Web Client interface for Thalam (Platform)
+ * @author Nakkeeran Annamalai
+ *
+ */
 public interface AggregatorWebClient {
     ServiceResponse executeRequest(final Service service, final ServiceRequest request);
     

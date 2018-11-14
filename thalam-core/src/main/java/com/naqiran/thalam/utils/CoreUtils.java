@@ -12,6 +12,11 @@ import com.naqiran.thalam.service.model.ServiceRequest;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+/**
+ * Core Utility for Thalam (Platform)
+ * @author Nakkeeran Annamalai
+ *
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CoreUtils {
 

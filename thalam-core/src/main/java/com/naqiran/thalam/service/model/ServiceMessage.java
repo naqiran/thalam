@@ -3,6 +3,7 @@ package com.naqiran.thalam.service.model;
 import lombok.Data;
 
 /**
+ * Unified Message for Thalam (Platform)
  * @author Nakkeeran Annamalai
  */
 @Data

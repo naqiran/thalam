@@ -6,6 +6,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+/**
+ * Servicelet Description
+ * @author Nakkeeran Annamalai
+ * 
+ */
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)

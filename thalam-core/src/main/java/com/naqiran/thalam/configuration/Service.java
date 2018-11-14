@@ -8,6 +8,11 @@ import javax.validation.constraints.PositiveOrZero;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Service Description
+ * @author Nakkeeran Annamalai
+ * 
+ */
 @Data
 @NoArgsConstructor
 public class Service {

@@ -13,6 +13,11 @@ import com.naqiran.thalam.configuration.ServiceDictionary;
 import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceResponse;
 
+/**
+ * Dictionary End points for Thalam (Platform) 
+ * @author Nakkeeran Annamalai
+ *
+ */
 @RestController
 @RequestMapping("${aggregator.context.path}/dictionary")
 public class ServiceDictionaryController {

@@ -23,6 +23,11 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+/**
+ * Unified Controller for Thalam (Platform)
+ * @author Nakkeeran Annamalai
+ *
+ */
 @Data
 @Slf4j
 @RestController

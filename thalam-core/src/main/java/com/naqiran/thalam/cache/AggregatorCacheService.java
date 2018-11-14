@@ -2,52 +2,91 @@ package com.naqiran.thalam.cache;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
+import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Service;
+import com.naqiran.thalam.model.ServiceException;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 
+/**
+ * 
+ * @author Nakkeeran Annamalai
+ *
+ */
 public interface AggregatorCacheService {
+
+    public static final Logger log = LoggerFactory.getLogger(AggregatorCacheService.class); 
     
-    public default ServiceResponse getValueFromCache(final ServiceRequest request) {
-        return null;
+    public ServiceResponse getValue(final Service service, final ServiceRequest request, Callable<ServiceResponse> response);
+    
+    public default boolean cacheResponse(final Service service) {
+        return service.isCacheEnabled();
     }
     
-    public default String getCacheKey(final ServiceRequest request, final Service service) {
+    public default String getCacheKey(final Service service, final ServiceRequest request) {
         final String cacheKeyFormat = service.getCacheKeyFormat();
-        final StringBuilder builder = new StringBuilder();
         if (StringUtils.isNotBlank(cacheKeyFormat)) {
-            if (StringUtils.startsWith(cacheKeyFormat, "service.")) {
-                String cacheKey = StringUtils.substringAfter(cacheKeyFormat, "service.");
-                return MapUtils.getString(service.getDefaultParameters(), cacheKey);
-            }
-            final List<String> keys = Arrays.asList(cacheKeyFormat.split("#"));
-            
-            for (final String key : keys) {
-                final ExpressionParser parser = new SpelExpressionParser();
+            final List<String> keys = Arrays.asList(cacheKeyFormat.split(";"));
+            final ExpressionParser parser = new SpelExpressionParser();
+            return keys.stream().map(key -> {
                 final Expression expression = parser.parseExpression(key);
                 final String keyPartial = (String) expression.getValue(request);
-                if (StringUtils.isNotBlank(keyPartial)) {
-                    builder.append(keyPartial).append("-");
-                }
-            }
-            if (builder.length() > 1) {
-                builder.setLength(builder.length() - 1);
-            }
-        } else {
-            builder.append(request.toString());
+                return StringUtils.defaultString(keyPartial);
+            }).collect(Collectors.joining("-"));
         }
-        return builder.toString();
+        return service.getId();
     }
     
+    public default ServiceResponse getValueFromRemote(final Service service, final ServiceRequest request, final Callable<ServiceResponse> remoteCallable) {
+        try {
+            return remoteCallable.call();
+        } catch (final Exception e) {
+            log.error("Service Id: {} | {}", service.getId(), e.getMessage());
+            throw new ServiceException("Error in getting remote response", e);
+        }
+    }
     
     static class DefaultAggregatorCacheService implements AggregatorCacheService {
         
+        @Autowired
+        private AggregatorCoreConfiguration coreConfiguration;
+        
+        @Override
+        public boolean cacheResponse(final Service service) {
+            return service.isCacheEnabled() && coreConfiguration.getCache().isEnabled();
+        }
+        
+        @Override
+        public String getCacheKey(final Service service, final ServiceRequest request) {
+            final String[] values = {coreConfiguration.getCache().getCachePrefix(), AggregatorCacheService.super.getCacheKey(service, request)};
+            return StringUtils.join(values, ",");
+        }
+
+        @Override
+        public ServiceResponse getValue(final Service service, final ServiceRequest request, final Callable<ServiceResponse> remoteResponse) {
+            ServiceResponse response = null;
+            if (cacheResponse(service)) {
+                response = null;
+            }
+            if (response == null) {
+                
+            }
+            return response;
+        }
+        
+        public ServiceResponse getValueFromRemote(final Service service, final ServiceRequest request) {
+            return null;
+        }
     }
 }

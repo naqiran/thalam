@@ -4,6 +4,11 @@ import java.util.Map;
 
 import lombok.Data;
 
+/**
+ * Unified Request for Thalam (Platform)
+ * @author Nakkeeran Annamalai
+ *
+ */
 @Data
 public class ServiceRequest {
     private String sequenceId;

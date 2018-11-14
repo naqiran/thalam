@@ -7,6 +7,11 @@ import java.lang.annotation.Target;
 
 import org.springframework.context.annotation.ComponentScan;
 
+/**
+ * 
+ * @author Nakkeeran Annamalai
+ *
+ */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ComponentScan(basePackages = "com.naqiran")

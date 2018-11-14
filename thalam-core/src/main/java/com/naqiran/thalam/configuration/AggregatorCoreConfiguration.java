@@ -5,6 +5,11 @@ import org.springframework.context.annotation.Configuration;
 
 import lombok.Data;
 
+/**
+ * Core Configuration for Thalam (Platform)
+ * @author Nakkeeran Annamalai
+ *
+ */
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "aggregator")
@@ -12,7 +17,7 @@ public class AggregatorCoreConfiguration {
     private AggregatorCoreContext context;
     private AggregatorEnvironmentContext environment;
     private WebContext web;
-    private AggregatorCacheContext cache;
+    private AggregatorCacheContext cache = new AggregatorCacheContext();
     
     @Data
     public static class AggregatorCoreContext {
