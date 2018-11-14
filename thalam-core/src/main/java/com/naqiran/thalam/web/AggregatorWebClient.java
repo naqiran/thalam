@@ -1,6 +1,7 @@
 package com.naqiran.thalam.web;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +27,10 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 public interface AggregatorWebClient {
+    
     ServiceResponse executeRequest(final Service service, final ServiceRequest request);
+    
+    UriComponentsBuilder getBaseUrl(Service service);
     
     /**
      * Create the URL from the Discovery Manager otherwise from the Service Configuration.
@@ -55,10 +59,6 @@ public interface AggregatorWebClient {
         }
         return builder.buildAndExpand(paramMap).encode().toUri();
     }
-    
-    
-    UriComponentsBuilder getBaseUrl(Service service);
-
 
     @Slf4j
     public class DefaultAggregatorWebClient implements AggregatorWebClient {
@@ -69,6 +69,8 @@ public interface AggregatorWebClient {
         @Override
         public ServiceResponse executeRequest(final Service service, final ServiceRequest request) {
             URI uri = getURL(service, request.getParameters(), request.getPathParameters());
+            ServiceResponse response = new ServiceResponse();
+            response.setCurrentTime(Instant.now());
             return null;
         }
         

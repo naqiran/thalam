@@ -1,6 +1,6 @@
 package com.naqiran.thalam.service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,10 +15,10 @@ import lombok.Data;
  */
 @Data
 public class ServiceResponse {
-    private Object response;
-    private int ttl;
+    private Object value;
+    private long ttl;
     private String source;
-    private LocalDateTime currentTime;
+    private Instant currentTime;
     private List<ServiceMessage> messages;
     
     public void addMessage(ServiceMessage serviceMessage) {
