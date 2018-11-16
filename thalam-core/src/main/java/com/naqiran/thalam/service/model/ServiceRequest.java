@@ -1,5 +1,6 @@
 package com.naqiran.thalam.service.model;
 
+import java.net.URI;
 import java.util.Map;
 
 import lombok.Data;
@@ -17,4 +18,5 @@ public class ServiceRequest {
     private Map<String,String> pathParameters;
     private Map<String,Object> additionalParameters;
     private Object body;
+    private URI uri;
 }

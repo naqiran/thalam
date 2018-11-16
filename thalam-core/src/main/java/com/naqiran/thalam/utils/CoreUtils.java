@@ -26,6 +26,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CoreUtils {
 
+    /**
+     * Create the Service Request from the HTTP Request
+     * @param request
+     * @param configuration
+     * @return ServiceRequest
+     */
     public static ServiceRequest createServiceRequest(final ServerHttpRequest request, final AggregatorCoreConfiguration configuration) {
         final ServiceRequest serviceRequest = new ServiceRequest();
         final Map<String,String> headerMap = CoreUtils.toSingleValuedMap(request.getHeaders());

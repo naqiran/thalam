@@ -2,7 +2,6 @@ package com.naqiran.thalam.web;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Map.Entry;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.util.Assert;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
@@ -32,7 +30,7 @@ public interface AggregatorWebClient {
     
     ServiceResponse executeRequest(final Service service, final ServiceRequest request);
     
-    UriComponentsBuilder getBaseUrl(Service service);
+    UriComponentsBuilder getBaseUrl(final Service service);
     
     /**
      * Create the URL from the Discovery Manager otherwise from the Service Configuration.
@@ -42,18 +40,16 @@ public interface AggregatorWebClient {
      * @param pathParam
      * @return String
      */
-    default URI getURL(final Service service, final Map<String, Object> requestParameters, final Map<String, String> pathParam) {
-        UriComponentsBuilder builder = getBaseUrl(service);
-        final Map<String, Object> paramMap = CoreUtils.populateAttributes(requestParameters, service.getParameters());
+    default URI getURL(final Service service, final ServiceRequest request) {
+        final UriComponentsBuilder builder = getBaseUrl(service);
+        Map<String,String> paramMap = request.getParameters();
         if (service.isAddAllParam() && MapUtils.isNotEmpty(paramMap)) {
-            for (Entry<String, Object> entry : paramMap.entrySet()) {
-                if (entry.getValue() instanceof String) {
-                    builder.replaceQueryParam(entry.getKey(), entry.getValue());
-                }
+            for (Entry<String, String> entry : paramMap.entrySet()) {
+                builder.replaceQueryParam(entry.getKey(), entry.getValue());
             }
         }
-        if (MapUtils.isNotEmpty(pathParam)) {
-            paramMap.putAll(pathParam);
+        if (MapUtils.isNotEmpty(request.getPathParameters())) {
+            paramMap.putAll(request.getPathParameters());
         }
         return builder.buildAndExpand(paramMap).encode().toUri();
     }
@@ -65,8 +61,9 @@ public interface AggregatorWebClient {
         private LoadBalancerClient lbClient;
         
         @Override
-        public ServiceResponse executeRequest(final Service service, final ServiceRequest request) {
-            URI uri = getURL(service, request.getParameters(), request.getPathParameters());
+        public ServiceResponse executeRequest(final Service service, final ServiceRequest originalRequest) {
+            final ServiceRequest request = CoreUtils.cloneServiceRequestForService(service, originalRequest);
+            request.setUri(getURL(service, request));
             ServiceResponse response = new ServiceResponse();
             response.setCurrentTime(Instant.now());
             return null;
