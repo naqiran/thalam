@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.service.ServiceExecutor;
 import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
@@ -35,6 +36,9 @@ import reactor.core.publisher.Mono;
 public class ServiceAggregatorController {
     
     @Autowired
+    private AggregatorCoreConfiguration configuration;
+    
+    @Autowired
     private ServiceExecutor serviceExecutor;
     
     @RequestMapping(value = "/{version}/{serviceId}/{pathParam}")
@@ -42,7 +46,7 @@ public class ServiceAggregatorController {
                                     final @PathVariable(name = "pathParam", required = false) String path, 
                                     final ServerHttpRequest request, final ServerHttpResponse response) {
         log.info("Service Id:{}, Version:{}", serviceId, version);
-        final ServiceRequest serviceRequest = CoreUtils.createRequest(request);
+        final ServiceRequest serviceRequest = CoreUtils.createServiceRequest(request,configuration);
         serviceExecutor.execute(serviceRequest);
         return Mono.create(consumer -> {
            consumer.success("First Response"); 

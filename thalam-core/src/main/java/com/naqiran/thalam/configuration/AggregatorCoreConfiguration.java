@@ -1,5 +1,7 @@
 package com.naqiran.thalam.configuration;
 
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,7 +29,8 @@ public class AggregatorCoreConfiguration {
     
     @Data
     public static class WebContext {
-        
+        private List<Attribute> headers;
+        private List<Attribute> parameters;
     }
     
     @Data

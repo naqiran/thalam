@@ -13,11 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.util.Assert;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
+import com.naqiran.thalam.utils.CoreUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,11 +44,7 @@ public interface AggregatorWebClient {
      */
     default URI getURL(final Service service, final Map<String, Object> requestParameters, final Map<String, String> pathParam) {
         UriComponentsBuilder builder = getBaseUrl(service);
-        final Map<String, Object> paramMap = new HashMap<>();
-        paramMap.putAll(requestParameters);
-        if (service.getDefaultParameters() != null) {
-            service.getDefaultParameters().forEach(paramMap::putIfAbsent);
-        }
+        final Map<String, Object> paramMap = CoreUtils.populateAttributes(requestParameters, service.getParameters());
         if (service.isAddAllParam() && MapUtils.isNotEmpty(paramMap)) {
             for (Entry<String, Object> entry : paramMap.entrySet()) {
                 if (entry.getValue() instanceof String) {

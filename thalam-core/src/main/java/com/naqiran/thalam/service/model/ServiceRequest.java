@@ -12,7 +12,9 @@ import lombok.Data;
 @Data
 public class ServiceRequest {
     private String sequenceId;
-    private Map<String,Object> parameters;
-    private Map<String,String> pathParameters;
+    private Map<String,String> parameters;
     private Map<String,String> headers;
+    private Map<String,String> pathParameters;
+    private Map<String,Object> additionalParameters;
+    private Object body;
 }

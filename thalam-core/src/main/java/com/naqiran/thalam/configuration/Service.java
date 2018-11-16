@@ -1,6 +1,6 @@
 package com.naqiran.thalam.configuration;
 
-import java.util.Map;
+import java.util.List;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.PositiveOrZero;
@@ -33,6 +33,6 @@ public class Service {
     private boolean overrideTTL;
     private String sourceParameter;
     private String targetParameter;
-    private Map<String,String> defaultHeaders;
-    private Map<String,Object> defaultParameters;
+    private List<Attribute> headers;
+    private List<Attribute> parameters;
 }
