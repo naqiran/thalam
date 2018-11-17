@@ -27,8 +27,8 @@ public class ServiceExecutor {
     @Autowired
     private AggregatorCoreConfiguration configuration;
     
-    public Mono<ServiceResponse> execute(final ServiceRequest request) {
-        Service service = serviceDictionary.getServiceById("test-service", "v1");
+    public Mono<ServiceResponse> execute(final String serviceId, final String version, final ServiceRequest request) {
+        final Service service = serviceDictionary.getServiceById(serviceId, version);
         Assert.notNull(service, "No Service Exist with the id");
         return null;
     }
@@ -43,6 +43,4 @@ public class ServiceExecutor {
     public void wrapCircuitBreaker() {
         
     }
-    
-    
 }

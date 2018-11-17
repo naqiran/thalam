@@ -61,6 +61,7 @@ public class CoreUtils {
             clonedRequest.setHeaders(new HashMap<>(serviceRequest.getHeaders()));
             clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
             clonedRequest.setBody(serviceRequest.getBody());
+            clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
             CoreUtils.decorateAttributes(serviceRequest.getParameters(), service.getParameters());
             CoreUtils.decorateAttributes(serviceRequest.getHeaders(), service.getHeaders());
         }

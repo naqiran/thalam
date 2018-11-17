@@ -3,6 +3,7 @@ package com.naqiran.thalam.service.model;
 import java.net.URI;
 import java.util.Map;
 
+import org.springframework.http.HttpMethod;
 import lombok.Data;
 
 /**
@@ -19,4 +20,5 @@ public class ServiceRequest {
     private Map<String,Object> additionalParameters;
     private Object body;
     private URI uri;
+    private HttpMethod requestMethod;
 }

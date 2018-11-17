@@ -47,7 +47,7 @@ public class ServiceAggregatorController {
                                     final ServerHttpRequest request, final ServerHttpResponse response) {
         log.info("Service Id:{}, Version:{}", serviceId, version);
         final ServiceRequest serviceRequest = CoreUtils.createServiceRequest(request,configuration);
-        serviceExecutor.execute(serviceRequest);
+        serviceExecutor.execute(serviceId, version, serviceRequest);
         return Mono.create(consumer -> {
            consumer.success("First Response"); 
         });
@@ -56,7 +56,6 @@ public class ServiceAggregatorController {
     @GetMapping(value = {"/ping", "/"})
     public Mono<Map<String,String>> ping() {
         return Mono.create(consumer -> {
-            serviceExecutor.execute(null);
             final Map<String,String> response = new HashMap<>();
             response.put("message", "Ping Message");
             response.put("currentTime", LocalDateTime.now().toString());
