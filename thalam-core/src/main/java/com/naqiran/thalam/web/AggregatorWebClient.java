@@ -1,9 +1,12 @@
 package com.naqiran.thalam.web;
 
+
 import java.net.URI;
 import java.time.Instant;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import java.util.Map.Entry;
 
 import org.apache.commons.collections4.MapUtils;
@@ -11,15 +14,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.util.Assert;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
+import com.naqiran.thalam.constants.ThalamConstants;
+import com.naqiran.thalam.service.model.ServiceException;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 import com.naqiran.thalam.utils.CoreUtils;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import reactor.core.publisher.Mono;
 
 /**
  * Default Web Client interface for Thalam (Platform)
@@ -28,9 +37,34 @@ import lombok.extern.slf4j.Slf4j;
  */
 public interface AggregatorWebClient {
     
-    ServiceResponse executeRequest(final Service service, final ServiceRequest request);
+    Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest request);
     
     UriComponentsBuilder getBaseUrl(final Service service);
+    
+    default void setCacheHeader(final ServiceResponse serviceResponse, final Service service) {
+        long serviceTtl = service.getTtl();
+        if (service.getTtlCron() != null) {
+            final Date expiryDate = service.getTtlCron().next(new Date());
+            serviceTtl = (int) (expiryDate.getTime() - System.currentTimeMillis());
+        }
+        if (service.isOverrideTTL()) {
+            serviceResponse.setCached(true);
+            serviceResponse.setTtl(serviceTtl);
+        } else if (MapUtils.isNotEmpty(serviceResponse.getHeaders())) {
+            final String cacheControlHeader = serviceResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+            if (StringUtils.isNotBlank(cacheControlHeader)) {
+                Stream.of(cacheControlHeader.split(",")).forEach(str -> {
+                    if (str.startsWith("max-age")) {
+                        final String[] maxAge = str.split("=");
+                        if (maxAge.length > 1) {
+                            serviceResponse.setTtl(Integer.valueOf(maxAge[1]) * ThalamConstants.NUMBER_THOUSAND);
+                            serviceResponse.setCached(true);
+                        } 
+                    } 
+                });
+            }
+        } 
+    }
     
     /**
      * Create the URL from the Discovery Manager otherwise from the Service Configuration.
@@ -54,18 +88,24 @@ public interface AggregatorWebClient {
         return builder.buildAndExpand(paramMap).encode().toUri();
     }
 
-    @Slf4j
-    public class DefaultAggregatorWebClient implements AggregatorWebClient {
+    @Data
+    public static class DefaultAggregatorWebClient implements AggregatorWebClient {
 
-        @Autowired
+        @Autowired(required = false)
         private LoadBalancerClient lbClient;
         
+        private WebClient client = WebClient.create();
+        
         @Override
-        public ServiceResponse executeRequest(final Service service, final ServiceRequest originalRequest) {
+        public Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest originalRequest) {
             final ServiceRequest request = CoreUtils.cloneServiceRequestForService(service, originalRequest);
             request.setUri(getURL(service, request));
-            ServiceResponse response = new ServiceResponse();
-            response.setCurrentTime(Instant.now());
+            client = WebClient.create();
+            final HttpMethod requestMethod = Optional.ofNullable(originalRequest.getRequestMethod()).orElse(HttpMethod.GET);
+            client.method(requestMethod).uri(request.getUri())
+                .exchange().as(resp -> {
+                    return resp;
+                });
             return null;
         }
         

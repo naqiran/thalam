@@ -1,13 +1,3 @@
 server:
   port: 8080
-  use-forward-headers: true  
-
-aggregator:
-  context:
-    path: "/aggregator"
-  dictionary:
-    name: Sample Description
-    services:
-      - id: "first-service"
-      - id: "second-service"
-        description: "Test Description"
+  use-forward-headers: true

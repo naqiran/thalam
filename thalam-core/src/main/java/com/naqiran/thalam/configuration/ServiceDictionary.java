@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
+import javax.validation.Validator;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @ConfigurationProperties(prefix = "aggregator.dictionary")
 public class ServiceDictionary {
+    private Validator validator;
     private String name;
     private List<Service> services;
     private Map<String,Service> serviceMap;
@@ -54,4 +56,5 @@ public class ServiceDictionary {
     public Service getServiceById(final String id, final String version) {
         return serviceMap.get(id);
     }
+    
 }

@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @SuppressWarnings("serial")
 public class ServiceException extends RuntimeException {
     private String message;
-    private final Exception wrappedException;
+    private final Throwable wrappedException;
     
     public ServiceException(final String message) {
         super();
@@ -18,7 +18,7 @@ public class ServiceException extends RuntimeException {
         this.wrappedException = null;
     }
     
-    public ServiceException(final String message, final Exception exception) {
+    public ServiceException(final String message, final Throwable exception) {
         super();
         this.message = message;
         this.wrappedException = exception;

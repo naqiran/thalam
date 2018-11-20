@@ -1,5 +1,6 @@
 package com.naqiran.thalam.controller;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,17 +42,15 @@ public class ServiceAggregatorController {
     @Autowired
     private ServiceExecutor serviceExecutor;
     
-    @RequestMapping(value = "/{version}/{serviceId}/{pathParam}")
-    public Mono<Object> getResponse(final @PathVariable(name = "version") String version, final @PathVariable(name = "serviceId") String serviceId, 
-                                    final @PathVariable(name = "pathParam", required = false) String path, 
+    @RequestMapping(value = "/{version}/{serviceId}")
+    public Mono<ServiceResponse> getResponse(final @PathVariable(name = "version") String version, final @PathVariable(name = "serviceId") String serviceId, 
                                     final ServerHttpRequest request, final ServerHttpResponse response) {
         log.info("Service Id:{}, Version:{}", serviceId, version);
         final ServiceRequest serviceRequest = CoreUtils.createServiceRequest(request,configuration);
-        serviceExecutor.execute(serviceId, version, serviceRequest);
-        return Mono.create(consumer -> {
-           consumer.success("First Response"); 
-        });
+        return serviceExecutor.execute(serviceId, version, serviceRequest);
     }
+    
+    
     
     @GetMapping(value = {"/ping", "/"})
     public Mono<Map<String,String>> ping() {
@@ -65,8 +64,9 @@ public class ServiceAggregatorController {
     
     @ExceptionHandler(Exception.class)
     public ServiceResponse errorResponse(final Exception exception) {
-        ServiceResponse response = new ServiceResponse();
-        ServiceMessage message = new ServiceMessage();
+        final ServiceResponse response = new ServiceResponse();
+        response.setCurrentTime(Instant.now());
+        final ServiceMessage message = new ServiceMessage();
         message.setMessage(exception.getMessage());
         response.addMessage(message);
         return response;

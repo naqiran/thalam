@@ -9,8 +9,17 @@ plugins {
     id 'idea'
 }
 
-repositories { mavenCentral() }
+allprojects {
+    repositories { 
+        mavenCentral() 
+    }
+}
 
+subprojects{
+    apply plugin: 'java'
+    apply plugin:'eclipse'
+    apply plugin: 'idea'
+}
 
 dependencies {
     implementation("org.projectlombok:lombok:${lombokVersion}")

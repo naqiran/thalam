@@ -102,5 +102,4 @@ public class CoreUtils {
         }
         return singleValuedMap;
     }
-    
 }

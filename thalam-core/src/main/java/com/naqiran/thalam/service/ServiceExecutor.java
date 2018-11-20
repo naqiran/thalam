@@ -9,6 +9,7 @@ import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceDictionary;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
+import com.naqiran.thalam.web.AggregatorWebClient;
 
 import lombok.Data;
 import reactor.core.publisher.Mono;
@@ -27,17 +28,17 @@ public class ServiceExecutor {
     @Autowired
     private AggregatorCoreConfiguration configuration;
     
+    @Autowired
+    private AggregatorWebClient client;
+    
     public Mono<ServiceResponse> execute(final String serviceId, final String version, final ServiceRequest request) {
         final Service service = serviceDictionary.getServiceById(serviceId, version);
         Assert.notNull(service, "No Service Exist with the id");
-        return null;
+        return getResponse(service,request);
     }
     
     public Mono<ServiceResponse> getResponse(final Service service, final ServiceRequest request) {
-        if (configuration.getCache().isEnabled()) {
-            
-        }
-        return null;
+        return client.executeRequest(service, request);
     }
     
     public void wrapCircuitBreaker() {

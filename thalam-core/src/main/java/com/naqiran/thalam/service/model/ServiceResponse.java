@@ -3,6 +3,7 @@ package com.naqiran.thalam.service.model;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.util.CollectionUtils;
 
@@ -16,10 +17,13 @@ import lombok.Data;
 @Data
 public class ServiceResponse {
     private Object value;
+    private Map<String,String> headers;
+    private boolean cached;
     private long ttl;
     private String source;
     private Instant currentTime;
     private List<ServiceMessage> messages;
+    
     
     public void addMessage(ServiceMessage serviceMessage) {
         if (CollectionUtils.isEmpty(messages)) {
