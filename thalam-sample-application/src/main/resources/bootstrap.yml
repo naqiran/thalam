@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: thalam-sample
+
+eureka:
+  client:
+    enabled: false        

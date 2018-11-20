@@ -1,0 +1,13 @@
+aggregator:
+  context:
+    path: "/aggregator"
+  dictionary:
+    name: Sample Description
+    services:
+      - id: "get-pet"
+        baseUrl: https://petstore.swagger.io
+        path: "/v2/pet/{petId}"
+        requestMethod: GET
+        responseType: java.util.Map
+      - id: "second-service"
+        description: "Test Description"
