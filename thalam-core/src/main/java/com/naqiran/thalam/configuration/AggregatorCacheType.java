@@ -6,5 +6,5 @@ package com.naqiran.thalam.configuration;
  *
  */
 public enum AggregatorCacheType {
-    CONCURRENT_HASHMAP, HAZELCAST, REDIS, OTHERS
+    CONCURRENT_HASHMAP, JCACHE, EHCACHE, HAZELCAST, REDIS, OTHERS
 }

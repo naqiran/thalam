@@ -22,8 +22,9 @@ public class ServiceResponse {
     private long ttl;
     private String source;
     private Instant currentTime;
+    private Instant cachedTime;
+    private Instant expiryTime;
     private List<ServiceMessage> messages;
-    
     
     public void addMessage(ServiceMessage serviceMessage) {
         if (CollectionUtils.isEmpty(messages)) {

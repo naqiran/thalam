@@ -2,7 +2,6 @@ package com.naqiran.thalam.web;
 
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +21,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.constants.ThalamConstants;
-import com.naqiran.thalam.service.model.ServiceException;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 import com.naqiran.thalam.utils.CoreUtils;
