@@ -43,13 +43,13 @@ public interface AggregatorCacheService {
             response = getResponseFromWrapper(getValueFromCache(cacheKey, service.getCacheName()));
         }
         if (response == null) {
-            log.info("Cached Miss - Service Id: {} | Cache Name: {} | Cache Key: {}", service.getId(), service.getCacheName(), cacheKey);
+            log.info("Cache Miss - Service Id: {} | Cache Name: {} | Cache Key: {}", service.getId(), service.getCacheName(), cacheKey);
             response = getValueFromRemote(service, request, remoteCallable);
             if (isCached(service)) {
                 putValueinCache(cacheKey, service.getCacheName(),  getCacheWrapper(response));
             }
         } else {
-            log.info("Cached Hit - Service Id: {} | Cache Name: {} | Cache Key: {} | Cached Time:{} | Expiry Time: {}", 
+            log.info("Cache Hit - Service Id: {} | Cache Name: {} | Cache Key: {} | Cached Time:{} | Expiry Time: {}", 
                                             service.getId(), service.getCacheName(), cacheKey, response.getCachedTime(), 
                                             response.getExpiryTime());
         }

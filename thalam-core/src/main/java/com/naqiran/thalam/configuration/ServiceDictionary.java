@@ -3,8 +3,11 @@ package com.naqiran.thalam.configuration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+import javax.validation.Valid;
 import javax.validation.Validator;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -28,23 +31,35 @@ import lombok.extern.slf4j.Slf4j;
 public class ServiceDictionary {
     private Validator validator;
     private String name;
+    
+    @Valid
     private List<Service> services;
+    
+    @Valid
+    private List<ServiceGroup> serviceGroups;
     private Map<String,Service> serviceMap;
+    private Map<String,ServiceGroup> serviceGroupMap;
     
     @PostConstruct
     private void buildServices() {
-        serviceMap = new HashMap<>();
         log.info("Initializing the Service Dictionary {}", name);
-        log.info("******************** Intializing Service Dictionary ********************");
         if (!CollectionUtils.isEmpty(services)) {
-            services.stream().forEach(service -> {
-                log.info("{}", service);
-                serviceMap.put(service.getId(), service); 
-            });
+            log.info("******************** Services ******************************");
+            serviceMap = services.stream().peek(service -> log.info("{}", service))
+                                            .collect(Collectors.toMap(Service::getId, Function.identity()));
         } else {
-            log.error("No Services Configured");
+            serviceMap = new HashMap<>();
+            log.warn("No Services Configured");
         }
-        log.info("******************** Initialized Service Dictionary ********************");
+        if (!CollectionUtils.isEmpty(serviceGroups)) {
+            log.info("******************** Service Groups ************************");
+            serviceGroupMap = serviceGroups.stream().peek(serviceGroup -> log.info("{}", serviceGroup))
+                                            .collect(Collectors.toMap(ServiceGroup::getId, Function.identity()));
+        } else {
+            serviceMap = new HashMap<>();
+            log.warn("No Service Groups Configured");
+        }
+        log.info("************************************************************");
     }
     
     /**

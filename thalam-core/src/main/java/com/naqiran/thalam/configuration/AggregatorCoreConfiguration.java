@@ -9,6 +9,7 @@ import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.Validator;
 
 import com.naqiran.thalam.cache.AggregatorCacheService;
 import com.naqiran.thalam.web.AggregatorWebClient;
@@ -68,6 +69,11 @@ public class AggregatorCoreConfiguration {
         AggregatorWebClient.DefaultAggregatorWebClient client = new AggregatorWebClient.DefaultAggregatorWebClient();
         client.setLbClient(lbClient);
         return client;
+    }
+    
+    @Bean
+    public static Validator configurationPropertiesValidator() {
+        return new ServiceDictionaryValidator();
     }
     
 }
