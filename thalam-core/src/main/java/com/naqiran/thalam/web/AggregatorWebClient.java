@@ -2,6 +2,8 @@ package com.naqiran.thalam.web;
 
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -20,12 +22,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
-import com.naqiran.thalam.constants.ThalamConstants;
+import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 import com.naqiran.thalam.utils.CoreUtils;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
@@ -40,10 +43,10 @@ public interface AggregatorWebClient {
     UriComponentsBuilder getBaseUrl(final Service service);
     
     default void setCacheHeader(final ServiceResponse serviceResponse, final Service service) {
-        long serviceTtl = service.getTtl();
+        Duration serviceTtl = service.getTtl();
         if (service.getTtlCron() != null) {
             final Date expiryDate = service.getTtlCron().next(new Date());
-            serviceTtl = (int) (expiryDate.getTime() - System.currentTimeMillis());
+            serviceTtl = Duration.between(Instant.ofEpochMilli(expiryDate.getTime()), Instant.now());
         }
         if (service.isOverrideTTL()) {
             serviceResponse.setCached(true);
@@ -55,7 +58,7 @@ public interface AggregatorWebClient {
                     if (str.startsWith("max-age")) {
                         final String[] maxAge = str.split("=");
                         if (maxAge.length > 1) {
-                            serviceResponse.setTtl(Integer.valueOf(maxAge[1]) * ThalamConstants.NUMBER_THOUSAND);
+                            serviceResponse.setTtl(Duration.ofSeconds(Long.valueOf(maxAge[0])));
                             serviceResponse.setCached(true);
                         } 
                     } 
@@ -86,6 +89,7 @@ public interface AggregatorWebClient {
         return builder.buildAndExpand(paramMap).encode().toUri();
     }
 
+    @Slf4j
     @Data
     public static class DefaultAggregatorWebClient implements AggregatorWebClient {
 
@@ -97,14 +101,25 @@ public interface AggregatorWebClient {
         @Override
         public Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest originalRequest) {
             final ServiceRequest request = CoreUtils.cloneServiceRequestForService(service, originalRequest);
-            request.setUri(getURL(service, request));
+            final URI uri = getURL(service, request);
+            request.setUri(uri);
+            final String url = uri.toString();
             client = WebClient.create();
             final HttpMethod requestMethod = Optional.ofNullable(originalRequest.getRequestMethod()).orElse(HttpMethod.GET);
-            client.method(requestMethod).uri(request.getUri())
-                .exchange().as(resp -> {
-                    return resp;
-                });
-            return null;
+            Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).retrieve().bodyToMono(service.getResponseType());
+            long startTime = System.nanoTime();
+            Mono<ServiceResponse> serviceResponse = monoResponse.map(resp -> {
+                log.info("Remote Request - Service Id: {} | URL: {} | Time Taken: {}", service.getId(), url, System.nanoTime() - startTime);
+                final ServiceResponse response = new ServiceResponse();
+                response.setSource(request.getUri().toString());
+                response.setCurrentTime(Instant.now());
+                response.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").message(url).build());
+                response.setValue(resp);
+                return response;
+            }).doOnError(err -> {
+                log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
+            });
+            return serviceResponse;
         }
         
         @Override

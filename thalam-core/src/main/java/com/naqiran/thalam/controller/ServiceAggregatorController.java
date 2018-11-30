@@ -1,7 +1,6 @@
 package com.naqiran.thalam.controller;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +21,6 @@ import com.naqiran.thalam.service.model.ServiceResponse;
 import com.naqiran.thalam.utils.CoreUtils;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
@@ -31,7 +29,6 @@ import reactor.core.publisher.Mono;
  *
  */
 @Data
-@Slf4j
 @RestController
 @RequestMapping("${aggregator.context.path}")
 public class ServiceAggregatorController {
@@ -43,21 +40,19 @@ public class ServiceAggregatorController {
     private ServiceExecutor serviceExecutor;
     
     @RequestMapping(value = "/{version}/{serviceId}")
-    public Mono<ServiceResponse> getResponse(final @PathVariable(name = "version") String version, final @PathVariable(name = "serviceId") String serviceId, 
-                                    final ServerHttpRequest request, final ServerHttpResponse response) {
-        log.info("Service Id:{}, Version:{}", serviceId, version);
-        final ServiceRequest serviceRequest = CoreUtils.createServiceRequest(request,configuration);
-        return serviceExecutor.execute(serviceId, version, serviceRequest);
+    public Mono<?> getResponse(final @PathVariable(name = "version") String version, final @PathVariable(name = "serviceId") String serviceId, 
+                                    final ServerHttpRequest serverRequest, final ServerHttpResponse serverResponse) {
+        final ServiceRequest serviceRequest = CoreUtils.createServiceRequest(serverRequest,configuration);
+        Mono<ServiceResponse> serviceResponse = serviceExecutor.execute(serviceId, version, serviceRequest);
+        return CoreUtils.toResponse(serviceRequest, serviceResponse, serverRequest, serverResponse);
     }
-    
-    
     
     @GetMapping(value = {"/ping", "/"})
     public Mono<Map<String,String>> ping() {
         return Mono.create(consumer -> {
             final Map<String,String> response = new HashMap<>();
             response.put("message", "Ping Message");
-            response.put("currentTime", LocalDateTime.now().toString());
+            response.put("currentTime", Instant.now().toString());
             consumer.success(response);
         });
     }

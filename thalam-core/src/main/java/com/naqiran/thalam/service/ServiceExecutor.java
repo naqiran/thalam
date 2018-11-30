@@ -2,7 +2,6 @@ package com.naqiran.thalam.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Service;
@@ -33,7 +32,6 @@ public class ServiceExecutor {
     
     public Mono<ServiceResponse> execute(final String serviceId, final String version, final ServiceRequest request) {
         final Service service = serviceDictionary.getServiceById(serviceId, version);
-        Assert.notNull(service, "No Service Exist with the id");
         return getResponse(service,request);
     }
     

@@ -1,14 +1,13 @@
 package com.naqiran.thalam.configuration;
 
+import java.time.Duration;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.PositiveOrZero;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.support.CronSequenceGenerator;
-import org.springframework.util.Assert;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Service {
-    @NotBlank(message = "ID should not be empty")
+    @NotBlank
     private String id;
     private String description;
     private String discoveryId;
@@ -32,12 +31,10 @@ public class Service {
     private boolean addAllParam;
     private boolean secure;
     private String circuitBreakerId;
-    
     private boolean cacheEnabled;
     private String cacheName;
     private String cacheKeyFormat;
-    @PositiveOrZero
-    private long ttl;
+    private Duration ttl;
     private boolean overrideTTL;
     private CronSequenceGenerator ttlCron;
     private String ttlExpression;
@@ -53,10 +50,18 @@ public class Service {
             ttlCron = new CronSequenceGenerator(ttlExpression);
         }
         
-        if (cacheEnabled) {
-            Assert.hasText(cacheName, "Cache Name should not be empty");
-            Assert.hasText(cacheKeyFormat, "Cache Key format should not be empty when cache is enabled");
+        if (requestMethod == null) {
+            //log.error("Request Method will be defaulted to GET {}", id);
         }
         
+        if (!HttpMethod.GET.equals(requestMethod)) {
+            if (requestType == null) {
+                //log.error("Map type will be defaulted if the request type is empty for service {}", id);
+            }
+            if (responseType == null) {
+                //log.warn("Map type will be defaulted if the response type is empty for service {}", id);
+            }
+        }
+        throw new RuntimeException();
     }
 }

@@ -1,5 +1,6 @@
 package com.naqiran.thalam.service.model;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ public class ServiceResponse {
     private Object value;
     private Map<String,String> headers;
     private boolean cached;
-    private long ttl;
+    private Duration ttl;
     private String source;
     private Instant currentTime;
     private Instant cachedTime;

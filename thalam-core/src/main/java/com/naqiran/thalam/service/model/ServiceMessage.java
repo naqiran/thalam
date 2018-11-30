@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @Builder
-
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceMessage {
+    private String id;
     private String message;
     @Builder.Default
     private ServiceMessageType type = ServiceMessageType.INFO;

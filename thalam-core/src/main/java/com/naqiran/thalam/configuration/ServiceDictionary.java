@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.validation.Valid;
-import javax.validation.Validator;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @ConfigurationProperties(prefix = "aggregator.dictionary")
 public class ServiceDictionary {
-    private Validator validator;
+    
     private String name;
     
     @Valid
@@ -70,6 +69,16 @@ public class ServiceDictionary {
      */
     public Service getServiceById(final String id, final String version) {
         return serviceMap.get(id);
+    }
+    
+    /**
+     * Get the Service by id and version.
+     * @param id
+     * @param version
+     * @return Service
+     */
+    public ServiceGroup getServiceGroupById(final String id, final String version) {
+        return serviceGroupMap.get(id);
     }
     
 }

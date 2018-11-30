@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +22,6 @@ import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.constants.ThalamConstants;
 import com.naqiran.thalam.service.model.CacheWrapper;
-import com.naqiran.thalam.service.model.ServiceException;
 import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
@@ -36,16 +35,16 @@ public interface AggregatorCacheService {
 
     public static final Logger log = LoggerFactory.getLogger(AggregatorCacheService.class); 
     
-    public default ServiceResponse getValue(final Service service, final ServiceRequest request, Callable<ServiceResponse> remoteCallable) {
+    public default ServiceResponse getValue(final Service service, final ServiceRequest request, Supplier<ServiceResponse> remoteSupplier) {
         ServiceResponse response = null;
         final String cacheKey = getCacheKey(service, request);
         if (isCached(service) && Boolean.getBoolean(request.getHeaders().get(ThalamConstants.CACHE_OVERRIDE_HEADER))) {
-            response = getResponseFromWrapper(getValueFromCache(cacheKey, service.getCacheName()));
+            response = getResponseFromWrapper(cacheKey, getValueFromCache(cacheKey, service.getCacheName()));
         }
         if (response == null) {
             log.info("Cache Miss - Service Id: {} | Cache Name: {} | Cache Key: {}", service.getId(), service.getCacheName(), cacheKey);
-            response = getValueFromRemote(service, request, remoteCallable);
-            if (isCached(service)) {
+            response = remoteSupplier.get();
+            if (response != null && isCached(service)) {
                 putValueinCache(cacheKey, service.getCacheName(),  getCacheWrapper(response));
             }
         } else {
@@ -56,7 +55,7 @@ public interface AggregatorCacheService {
         return response;
     }
     
-    CacheWrapper getValueFromCache(final String cacheKey, final String cacheName);
+    @Nullable CacheWrapper getValueFromCache(final String cacheKey, final String cacheName);
     
     void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
     
@@ -85,47 +84,31 @@ public interface AggregatorCacheService {
             wrapper.setValue(response.getValue());
             wrapper.setSource(response.getSource());
             wrapper.setCachedTime(Instant.now());
-            wrapper.setTtl(response.getTtl());
-            if (response.getTtl() > 0) {
-                wrapper.setExpiryTime(Instant.now().minusMillis(response.getTtl()));
+            if (response.getTtl() != null) {
+                wrapper.setTtl(response.getTtl().toMillis());
+                wrapper.setExpiryTime(Instant.now().minus(response.getTtl()));
             }
         }
         return wrapper;
     }
     
-    public default ServiceResponse getResponseFromWrapper(final CacheWrapper wrapper) {
-        final ServiceResponse serviceResponse = new ServiceResponse();
+    public default ServiceResponse getResponseFromWrapper(final String cacheKey, final CacheWrapper wrapper) {
+        ServiceResponse serviceResponse = null;
         if (wrapper != null) {
+            serviceResponse = new ServiceResponse();
             final Instant now = Instant.now();
-            serviceResponse.setSource("CACHE");
+            serviceResponse.setSource(ThalamConstants.CACHE);
             serviceResponse.setValue(wrapper.getValue());
             serviceResponse.setCurrentTime(now);
             serviceResponse.setCachedTime(wrapper.getCachedTime());
             serviceResponse.setExpiryTime(wrapper.getExpiryTime());
             if (wrapper.getExpiryTime() != null) {
-                long millis = Duration.between(now, wrapper.getExpiryTime()).toMillis();
-                if (millis > 0) {
-                    serviceResponse.setTtl(millis);
-                }
+                serviceResponse.setTtl(Duration.between(now, wrapper.getExpiryTime()));
             }
-            
-        } else {
-            final ServiceMessage serviceMessage = ServiceMessage.builder().message("Cache Wrapper is empty").build();
-            serviceResponse.addMessage(serviceMessage);
-        }
+            serviceResponse.addMessage(ServiceMessage.builder().id("CACHED-RESPONSE").message(cacheKey).build());
+        } 
         return serviceResponse;
     }
-    
-    public default ServiceResponse getValueFromRemote(final Service service, final ServiceRequest request, final Callable<ServiceResponse> remoteCallable) {
-        try {
-            return remoteCallable.call();
-        } catch (final Exception e) {
-            log.error("Service Id: {} | {}", service.getId(), e.getMessage());
-            throw new ServiceException("Error in getting remote response", e);
-        }
-    }
-    
-    
     
     static class DefaultAggregatorCacheService implements AggregatorCacheService {
         

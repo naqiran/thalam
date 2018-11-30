@@ -9,7 +9,7 @@ public class ServiceDictionaryValidator implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {
-        return clazz.isAssignableFrom(Service.class);// || clazz.isAssignableFrom(ServiceGroup.class);
+        return clazz.isAssignableFrom(Service.class) || clazz.isAssignableFrom(ServiceGroup.class);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class ServiceDictionaryValidator implements Validator {
                                             "Either the discovery id or base url should be present for service: {}");
         }
 
-        if (service.getTtl() > 0 && StringUtils.isNotBlank(service.getTtlExpression())) {
+        if (service.getTtl() != null && StringUtils.isNotBlank(service.getTtlExpression())) {
             errors.reject("service.ttl.expression.error", "Either the ttl or ttl expression should be set for the service");
         }
     }

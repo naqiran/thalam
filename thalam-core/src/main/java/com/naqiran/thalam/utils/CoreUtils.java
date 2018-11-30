@@ -5,18 +5,23 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.springframework.util.MultiValueMap;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Attribute;
 import com.naqiran.thalam.configuration.AttributeType;
 import com.naqiran.thalam.configuration.Service;
+import com.naqiran.thalam.constants.ThalamConstants;
 import com.naqiran.thalam.service.model.ServiceRequest;
+import com.naqiran.thalam.service.model.ServiceResponse;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import reactor.core.publisher.Mono;
 
 /**
  * Core Utility for Thalam (Platform)
@@ -34,10 +39,10 @@ public class CoreUtils {
      */
     public static ServiceRequest createServiceRequest(final ServerHttpRequest request, final AggregatorCoreConfiguration configuration) {
         final ServiceRequest serviceRequest = new ServiceRequest();
-        final Map<String,String> headerMap = CoreUtils.toSingleValuedMap(request.getHeaders());
+        final Map<String,String> headerMap = CoreUtils.toSingleValuedMap(request.getHeaders(), ThalamConstants.CASE_INSENSITIVE_MAP);
         serviceRequest.setHeaders(headerMap);
         
-        final Map<String,String> parametersMap = CoreUtils.toSingleValuedMap(request.getQueryParams());
+        final Map<String,String> parametersMap = CoreUtils.toSingleValuedMap(request.getQueryParams(), null);
         serviceRequest.setParameters(parametersMap);
         
         //Decorate the default value from the configuration.
@@ -95,11 +100,23 @@ public class CoreUtils {
      * @param mvMap
      * @return Map
      */
-    public static <K,V> Map<K,V> toSingleValuedMap(final MultiValueMap<K,V> mvMap) {
-        final Map<K,V> singleValuedMap = new HashMap<K,V>();
+    public static <K,V> Map<K,V> toSingleValuedMap(final MultiValueMap<K,V> mvMap, String type) {
+        final Map<K,V> singleValuedMap = ThalamConstants.CASE_INSENSITIVE_MAP.equals(type) ? new CaseInsensitiveMap<K,V>() : new HashMap<K,V>();
         if (MapUtils.isNotEmpty(mvMap)) {
             mvMap.forEach((key,value) -> singleValuedMap.put(key,value.get(0)));
         }
         return singleValuedMap;
+    }
+    
+    /**
+     * 
+     */
+    public static Mono<?> toResponse(final ServiceRequest request, final Mono<ServiceResponse> response, final ServerHttpRequest serverRequest, final ServerHttpResponse serverResponse) {
+        return response.map(resp -> {
+            if (request.getHeaders().containsKey(ThalamConstants.DEBUG_HEADER)) {
+                return resp;
+            }
+            return resp.getValue();
+        });
     }
 }
