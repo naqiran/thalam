@@ -36,11 +36,10 @@ import reactor.core.publisher.Mono;
  * @author Nakkeeran Annamalai
  *
  */
+@FunctionalInterface
 public interface AggregatorWebClient {
     
     Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest request);
-    
-    UriComponentsBuilder getBaseUrl(final Service service);
     
     default void setCacheHeader(final ServiceResponse serviceResponse, final Service service) {
         Duration serviceTtl = service.getTtl();
@@ -88,6 +87,14 @@ public interface AggregatorWebClient {
         }
         return builder.buildAndExpand(paramMap).encode().toUri();
     }
+    
+    default UriComponentsBuilder getBaseUrl(final Service service) {
+        Assert.hasText(service.getBaseUrl(), "Base URL should not be empty: " + service.getId());
+        return UriComponentsBuilder.fromHttpUrl(service.getBaseUrl())
+                                        .path(StringUtils.substringBefore(service.getPath(), "?"))
+                                        .scheme(service.isSecure() ? "https" : "http")
+                                        .query(StringUtils.substringAfter(service.getPath(), "?"));
+    }
 
     @Slf4j
     @Data
@@ -108,44 +115,32 @@ public interface AggregatorWebClient {
             final HttpMethod requestMethod = Optional.ofNullable(originalRequest.getRequestMethod()).orElse(HttpMethod.GET);
             Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).retrieve().bodyToMono(service.getResponseType());
             long startTime = System.nanoTime();
-            Mono<ServiceResponse> serviceResponse = monoResponse.map(resp -> {
+            return monoResponse.map(resp -> {
                 log.info("Remote Request - Service Id: {} | URL: {} | Time Taken: {}", service.getId(), url, System.nanoTime() - startTime);
-                final ServiceResponse response = new ServiceResponse();
-                response.setSource(request.getUri().toString());
-                response.setCurrentTime(Instant.now());
-                response.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").message(url).build());
-                response.setValue(resp);
+                final ServiceMessage message = ServiceMessage.builder().id("REMOTE-RESPONSE").message(url).build();
+                final ServiceResponse response = ServiceResponse.builder().source(url).value(resp).build();
+                response.addMessage(message);
                 return response;
             }).doOnError(err -> {
                 log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
+            }).onErrorResume(err -> {
+                final ServiceResponse errorResponse = ServiceResponse.builder().source(url).build();
+                errorResponse.addMessage(ServiceMessage.builder().message(err.getMessage()).build());
+                return Mono.just(errorResponse);
             });
-            return serviceResponse;
         }
         
         @Override
         public UriComponentsBuilder getBaseUrl(final Service service) {
-            UriComponentsBuilder builder = null;
+            UriComponentsBuilder builder = AggregatorWebClient.super.getBaseUrl(service);
             if (StringUtils.isNotBlank(service.getPath())) {
-                final String path = StringUtils.substringBefore(service.getPath(), "?");
-                final String query = StringUtils.substringAfter(service.getPath(), "?");
                 final ServiceInstance instance = lbClient.choose(Optional.ofNullable(service.getDiscoveryId()).orElse(service.getId()));
                 if (instance != null) {
-                    builder = UriComponentsBuilder.newInstance();
                     builder.host(instance.getHost());
                     if (instance.getPort() > 0) {
                         builder.port(instance.getPort());
                     }
-                    final String scheme = service.isSecure() ? "https" : "http";
-                    builder.scheme(scheme).path(path).query(query);
                 }
-                else {
-                    Assert.hasText(service.getBaseUrl(), "Base URL should not be empty: " + service.getId());
-                    builder = UriComponentsBuilder.fromHttpUrl(service.getBaseUrl()).path(path).query(query);
-                }
-            }
-            else {
-                Assert.hasText(service.getBaseUrl(), "Base URL should not be empty: " + service.getId());
-                builder = UriComponentsBuilder.fromHttpUrl(service.getBaseUrl());
             }
             return builder;
         }

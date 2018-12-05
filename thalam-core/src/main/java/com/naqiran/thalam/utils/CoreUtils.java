@@ -4,11 +4,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.MultiValueMap;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
@@ -21,6 +25,7 @@ import com.naqiran.thalam.service.model.ServiceResponse;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
@@ -28,6 +33,7 @@ import reactor.core.publisher.Mono;
  * @author Nakkeeran Annamalai
  *
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CoreUtils {
 
@@ -118,5 +124,17 @@ public class CoreUtils {
             }
             return resp.getValue();
         });
+    }
+    
+    public static String evaluateSPEL(final String expressionString, final ServiceRequest request) {
+        String keyPartial = null;
+        try {
+            final ExpressionParser parser = new SpelExpressionParser();
+            final Expression expression = parser.parseExpression(expressionString);
+            keyPartial = (String) expression.getValue(request);
+        } catch (final Exception e) {
+            log.error("Error Evaluating Expression: {}", e.getMessage());
+        }
+        return StringUtils.defaultString(keyPartial);
     }
 }

@@ -1,7 +1,9 @@
 package com.naqiran.thalam.configuration;
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -26,7 +28,7 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "aggregator")
 public class AggregatorCoreConfiguration {
     private AggregatorCoreContext context;
-    private AggregatorEnvironmentContext environment;
+    private AggregatorEnvironmentContext environment = new AggregatorEnvironmentContext();
     private WebContext web;
     private AggregatorCacheContext cache = new AggregatorCacheContext();
     
@@ -48,8 +50,8 @@ public class AggregatorCoreConfiguration {
         private String cachePrefix;
         private AggregatorCacheType cacheType;
         
-        @Bean
-        @ConditionalOnProperty(name = "aggregator.cache.cacheType", havingValue = "CONCURRENT_HASHMAP")
+        @Bean("aggregatorCacheClient")
+        @ConditionalOnProperty(name = "aggregator.cache.cacheType", havingValue = "CONCURRENT_HASHMAP", matchIfMissing = true)
         @ConditionalOnMissingBean(value = AggregatorCacheService.class)
         public AggregatorCacheService createClient(final LoadBalancerClient lbClient) {
             AggregatorCacheService.DefaultAggregatorCacheService cacheService = new AggregatorCacheService.DefaultAggregatorCacheService();
@@ -60,7 +62,17 @@ public class AggregatorCoreConfiguration {
     
     @Data
     public static class AggregatorEnvironmentContext {
-        private String environmentName;
+        private String name;
+        private Map<String,String> parameters;
+        
+        public String getParameters(final String parameterName, final String defaultValue) {
+            return MapUtils.isNotEmpty(parameters) ? parameters.getOrDefault(parameterName, defaultValue) : defaultValue;
+        }
+    }
+    
+    @Bean
+    public static Validator configurationPropertiesValidator() {
+        return new ServiceDictionaryValidator();
     }
     
     @Bean
@@ -70,10 +82,4 @@ public class AggregatorCoreConfiguration {
         client.setLbClient(lbClient);
         return client;
     }
-    
-    @Bean
-    public static Validator configurationPropertiesValidator() {
-        return new ServiceDictionaryValidator();
-    }
-    
 }

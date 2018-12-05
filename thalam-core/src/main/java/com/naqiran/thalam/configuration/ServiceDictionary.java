@@ -72,13 +72,12 @@ public class ServiceDictionary {
     }
     
     /**
-     * Get the Service by id and version.
+     * Get the ServiceGroup by id and version.
      * @param id
      * @param version
-     * @return Service
+     * @return ServiceGroup
      */
     public ServiceGroup getServiceGroupById(final String id, final String version) {
         return serviceGroupMap.get(id);
     }
-    
 }

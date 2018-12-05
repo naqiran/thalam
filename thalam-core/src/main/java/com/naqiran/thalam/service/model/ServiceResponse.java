@@ -8,6 +8,9 @@ import java.util.Map;
 
 import org.springframework.util.CollectionUtils;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -16,13 +19,18 @@ import lombok.Data;
  *
  */
 @Data
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ServiceResponse {
     private Object value;
     private Map<String,String> headers;
     private boolean cached;
     private Duration ttl;
     private String source;
-    private Instant currentTime;
+    
+    @Builder.Default
+    private final Instant currentTime = Instant.now();
+    
     private Instant cachedTime;
     private Instant expiryTime;
     private List<ServiceMessage> messages;

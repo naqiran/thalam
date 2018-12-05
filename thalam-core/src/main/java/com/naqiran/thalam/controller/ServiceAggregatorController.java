@@ -59,8 +59,8 @@ public class ServiceAggregatorController {
     
     @ExceptionHandler(Exception.class)
     public ServiceResponse errorResponse(final Exception exception) {
-        final ServiceResponse response = new ServiceResponse();
-        response.setCurrentTime(Instant.now());
+        exception.printStackTrace();
+        final ServiceResponse response = ServiceResponse.builder().source(this.getClass().getName()).build();
         final ServiceMessage message = new ServiceMessage();
         message.setMessage(exception.getMessage());
         response.addMessage(message);
