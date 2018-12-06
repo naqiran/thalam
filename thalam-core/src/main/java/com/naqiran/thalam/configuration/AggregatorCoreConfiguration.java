@@ -53,7 +53,7 @@ public class AggregatorCoreConfiguration {
         @Bean("aggregatorCacheClient")
         @ConditionalOnProperty(name = "aggregator.cache.cacheType", havingValue = "CONCURRENT_HASHMAP", matchIfMissing = true)
         @ConditionalOnMissingBean(value = AggregatorCacheService.class)
-        public AggregatorCacheService createClient(final LoadBalancerClient lbClient) {
+        public AggregatorCacheService createDefaultCacheService(final LoadBalancerClient lbClient) {
             AggregatorCacheService.DefaultAggregatorCacheService cacheService = new AggregatorCacheService.DefaultAggregatorCacheService();
             cacheService.setCacheManager(new ConcurrentMapCacheManager());
             return cacheService;
@@ -77,9 +77,14 @@ public class AggregatorCoreConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(value = AggregatorWebClient.class)
-    public AggregatorWebClient createClient(final LoadBalancerClient lbClient) {
+    public AggregatorWebClient createWebClient(final LoadBalancerClient lbClient) {
         AggregatorWebClient.DefaultAggregatorWebClient client = new AggregatorWebClient.DefaultAggregatorWebClient();
         client.setLbClient(lbClient);
         return client;
+    }
+    
+    @Bean
+    public ServiceDictionaryBuilder createDictionaryBuilder() {
+        return new ServiceDictionaryBuilder();
     }
 }

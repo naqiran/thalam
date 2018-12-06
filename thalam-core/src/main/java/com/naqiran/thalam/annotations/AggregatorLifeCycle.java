@@ -5,16 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.springframework.context.annotation.ComponentScan;
-
-/**
- * 
- * @author Nakkeeran Annamalai
- *
- */
-@Target(ElementType.TYPE)
+@Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@ComponentScan(basePackages = "com.naqiran.thalam")
-public @interface EnableServiceAggregator {
-
+public @interface AggregatorLifeCycle {
+    LifeCyleMethodType type() default LifeCyleMethodType.NOTHING;
+    String service() default "";
+    String version() default "";
 }

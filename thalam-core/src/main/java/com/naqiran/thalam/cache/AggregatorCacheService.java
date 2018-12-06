@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Service;
@@ -39,8 +41,10 @@ public interface AggregatorCacheService {
     
     void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
     
-    public default Mono<ServiceResponse> getValue(final Service service, final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
+    public default Mono<ServiceResponse> getValue(final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
         ServiceResponse response = null;
+        final Service service = request.getService();
+        Assert.notNull(service, "Service should not be empty for getting the value from cache");
         final String cacheKey = getCacheKey(service, request);
         final boolean cached = isCached(service);
         if (cached && !request.getHeaders().containsKey(ThalamConstants.CACHE_OVERRIDE_HEADER)) {
@@ -71,8 +75,8 @@ public interface AggregatorCacheService {
         if (StringUtils.isNotBlank(cacheKeyFormat)) {
             final List<String> keys = Arrays.asList(cacheKeyFormat.split(";"));
             return keys.stream().map(key -> {
-                return CoreUtils.evaluateSPEL(key, request);
-            }).collect(Collectors.joining("-"));
+                return CoreUtils.evaluateSPEL(key, request, String.class);
+            }).filter(Objects::nonNull).collect(Collectors.joining("-"));
         }
         return service.getId();
     }

@@ -1,7 +1,5 @@
 package com.naqiran.thalam.web;
 
-
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -25,7 +23,6 @@ import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
-import com.naqiran.thalam.utils.CoreUtils;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +36,7 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface AggregatorWebClient {
     
-    Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest request);
+    Mono<ServiceResponse> executeRequest(final ServiceRequest request);
     
     default void setCacheHeader(final ServiceResponse serviceResponse, final Service service) {
         Duration serviceTtl = service.getTtl();
@@ -74,7 +71,8 @@ public interface AggregatorWebClient {
      * @param pathParam
      * @return String
      */
-    default URI getURL(final Service service, final ServiceRequest request) {
+    default void decorateServiceURL(final ServiceRequest request) {
+        Service service = request.getService();
         final UriComponentsBuilder builder = getBaseUrl(service);
         Map<String,String> paramMap = request.getParameters();
         if (service.isAddAllParam() && MapUtils.isNotEmpty(paramMap)) {
@@ -85,7 +83,7 @@ public interface AggregatorWebClient {
         if (MapUtils.isNotEmpty(request.getPathParameters())) {
             paramMap.putAll(request.getPathParameters());
         }
-        return builder.buildAndExpand(paramMap).encode().toUri();
+        request.setUri(builder.buildAndExpand(paramMap).encode().toUri());
     }
     
     default UriComponentsBuilder getBaseUrl(final Service service) {
@@ -106,13 +104,13 @@ public interface AggregatorWebClient {
         private WebClient client = WebClient.create();
         
         @Override
-        public Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest originalRequest) {
-            final ServiceRequest request = CoreUtils.cloneServiceRequestForService(service, originalRequest);
-            final URI uri = getURL(service, request);
-            request.setUri(uri);
-            final String url = uri.toString();
+        public Mono<ServiceResponse> executeRequest(final ServiceRequest request) {
+            final Service service = request.getService();
+            Assert.notNull(service, "Service should not be empty for getting the value from cache");
+            decorateServiceURL(request);
+            final String url = request.getUri().toString();
             client = WebClient.create();
-            final HttpMethod requestMethod = Optional.ofNullable(originalRequest.getRequestMethod()).orElse(HttpMethod.GET);
+            final HttpMethod requestMethod = Optional.ofNullable(request.getRequestMethod()).orElse(HttpMethod.GET);
             Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).retrieve().bodyToMono(service.getResponseType());
             long startTime = System.nanoTime();
             return monoResponse.map(resp -> {

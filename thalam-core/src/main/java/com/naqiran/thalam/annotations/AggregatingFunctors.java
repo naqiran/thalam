@@ -5,16 +5,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 
-/**
- * 
- * @author Nakkeeran Annamalai
- *
- */
+@Component
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@ComponentScan(basePackages = "com.naqiran.thalam")
-public @interface EnableServiceAggregator {
+public @interface AggregatingFunctors {
 
 }

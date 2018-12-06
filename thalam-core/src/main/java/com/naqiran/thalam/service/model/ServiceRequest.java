@@ -4,6 +4,9 @@ import java.net.URI;
 import java.util.Map;
 
 import org.springframework.http.HttpMethod;
+
+import com.naqiran.thalam.configuration.Service;
+
 import lombok.Data;
 
 /**
@@ -21,4 +24,6 @@ public class ServiceRequest {
     private Object body;
     private URI uri;
     private HttpMethod requestMethod;
+    private Service service;
+    private ServiceResponse carriedResponse;
 }

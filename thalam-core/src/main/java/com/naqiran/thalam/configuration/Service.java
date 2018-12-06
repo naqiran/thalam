@@ -2,12 +2,15 @@ package com.naqiran.thalam.configuration;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.support.CronSequenceGenerator;
+
+import com.naqiran.thalam.service.model.ServiceRequest;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -43,6 +46,10 @@ public class Service {
     private List<Attribute> parameters;
     private Class<?> responseType;
     private Class<?> requestType;
+    
+    private Function<ServiceRequest, ServiceRequest> prepare;
+    private Function<ServiceRequest, Boolean> validate;
+    private String preValidateExpression;
     
     @PostConstruct
     public void servicePostConfiguration() {

@@ -12,7 +12,6 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.MultiValueMap;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
@@ -69,7 +68,8 @@ public class CoreUtils {
     public static ServiceRequest cloneServiceRequestForService(final Service service, final ServiceRequest serviceRequest) {
         final ServiceRequest clonedRequest = new ServiceRequest();
         if (serviceRequest != null) {
-            clonedRequest.setHeaders(new HashMap<>(serviceRequest.getHeaders()));
+            clonedRequest.setService(service);
+            clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
             clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
             clonedRequest.setBody(serviceRequest.getBody());
             clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
@@ -115,26 +115,35 @@ public class CoreUtils {
     }
     
     /**
-     * 
+     * To Mono Response
+     * @param request
+     * @param response
+     * @param serverRequest
+     * @param serverResponse
      */
     public static Mono<?> toResponse(final ServiceRequest request, final Mono<ServiceResponse> response, final ServerHttpRequest serverRequest, final ServerHttpResponse serverResponse) {
         return response.map(resp -> {
-            if (request.getHeaders().containsKey(ThalamConstants.DEBUG_HEADER)) {
+            if (request.getHeaders().containsKey(ThalamConstants.DEBUG_HEADER) || resp.getValue() == null) {
                 return resp;
             }
             return resp.getValue();
         });
     }
     
-    public static String evaluateSPEL(final String expressionString, final ServiceRequest request) {
-        String keyPartial = null;
+    /**
+     * Evaluate the Spring Expression Language.
+     * @param expressionString
+     * @param request
+     * @return String
+     */
+    public static <T> T evaluateSPEL(final String expressionString, final ServiceRequest request, Class<T> clazz) {
         try {
             final ExpressionParser parser = new SpelExpressionParser();
             final Expression expression = parser.parseExpression(expressionString);
-            keyPartial = (String) expression.getValue(request);
+            return expression.getValue(request, clazz);
         } catch (final Exception e) {
             log.error("Error Evaluating Expression: {}", e.getMessage());
         }
-        return StringUtils.defaultString(keyPartial);
+        return null;
     }
 }
