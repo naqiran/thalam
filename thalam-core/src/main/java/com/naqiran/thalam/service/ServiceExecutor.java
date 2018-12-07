@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.naqiran.thalam.cache.AggregatorCacheService;
+import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.ExecutionType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceDictionary;
@@ -33,6 +33,9 @@ public class ServiceExecutor {
     
     @Autowired
     private ServiceDictionary serviceDictionary;
+    
+    @Autowired
+    private AggregatorCoreConfiguration configuration;
     
     @Autowired
     private AggregatorWebClient client;
@@ -68,11 +71,6 @@ public class ServiceExecutor {
             return Flux.merge(responses).collectList().flatMap(respList -> {
                 return Mono.just(respList.stream().reduce(CoreUtils.createServiceRespone(true), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
             });
-        } else if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
-            if (CollectionUtils.isNotEmpty(serviceGroup.getServices())) {
-                serviceGroup.getServices().stream().map(svc -> getResponse(svc, request)).reduce((respMono1, respMono2) -> 
-                respMono1.zipWith(respMono2, (resp1, resp2) -> resp1));
-            }
         }
         return Mono.empty();
     }

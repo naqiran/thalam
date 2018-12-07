@@ -74,7 +74,7 @@ public class CoreUtils {
             clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
             clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
             clonedRequest.setBody(serviceRequest.getBody());
-            clonedRequest.setRequestMethod(service.getRequestMethod());
+            clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
             CoreUtils.decorateAttributes(serviceRequest.getParameters(), service.getParameters());
             CoreUtils.decorateAttributes(serviceRequest.getHeaders(), service.getHeaders());
         }
@@ -86,6 +86,7 @@ public class CoreUtils {
         clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
         clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
         clonedRequest.setBody(serviceRequest.getBody());
+        clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
         return clonedRequest;
     }
     
@@ -167,10 +168,9 @@ public class CoreUtils {
         return response;
     }
     
-    @SuppressWarnings("unchecked")
     public static ServiceResponse aggregateServiceRespone(final ServiceResponse aggregatedResponse, final ServiceResponse simpleResponse) {
         if (simpleResponse.getValue() != null) {
-            ((ArrayList<Object>)aggregatedResponse.getValue()).add(simpleResponse.getValue());
+            ((ArrayList)aggregatedResponse.getValue()).add(simpleResponse.getValue());
         }
         if (CollectionUtils.isNotEmpty(simpleResponse.getMessages())) {
             aggregatedResponse.getMessages().addAll(simpleResponse.getMessages());
