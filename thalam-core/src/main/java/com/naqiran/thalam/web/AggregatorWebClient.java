@@ -21,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.service.model.ServiceMessage;
+import com.naqiran.thalam.service.model.ServiceMessageType;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 
@@ -112,9 +113,8 @@ public interface AggregatorWebClient {
             client = WebClient.create();
             final HttpMethod requestMethod = Optional.ofNullable(request.getRequestMethod()).orElse(HttpMethod.GET);
             Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).retrieve().bodyToMono(service.getResponseType());
-            long startTime = System.nanoTime();
             return monoResponse.map(resp -> {
-                log.info("Remote Request - Service Id: {} | URL: {} | Time Taken: {}", service.getId(), url, System.nanoTime() - startTime);
+                log.info("Remote Request - Service Id: {} | URL: {}", service.getId(), url);
                 final ServiceMessage message = ServiceMessage.builder().id("REMOTE-RESPONSE").message(url).build();
                 final ServiceResponse response = ServiceResponse.builder().source(url).value(resp).build();
                 response.addMessage(message);
@@ -123,7 +123,7 @@ public interface AggregatorWebClient {
                 log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
             }).onErrorResume(err -> {
                 final ServiceResponse errorResponse = ServiceResponse.builder().source(url).build();
-                errorResponse.addMessage(ServiceMessage.builder().message(err.getMessage()).build());
+                errorResponse.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").type(ServiceMessageType.ERROR).message(err.getMessage()).build());
                 return Mono.just(errorResponse);
             });
         }

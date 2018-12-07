@@ -2,9 +2,9 @@ package com.naqiran.thalam.configuration;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 
 import org.springframework.http.HttpMethod;
@@ -52,6 +52,7 @@ public class Service {
     private Function<ServiceRequest,ServiceRequest> prepare;
     private Function<ServiceRequest, Boolean> validate;
     private Function<ServiceResponse, ServiceResponse> map;
+    private BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> zip;
     private String preValidateExpression;
     private boolean temp;
     
@@ -61,26 +62,5 @@ public class Service {
     public Service(final String id) {
         this.id = id;
         this.temp = true;
-    }
-    
-    @PostConstruct
-    public void servicePostConfiguration() {
-        if (CronSequenceGenerator.isValidExpression(ttlExpression)) {
-            ttlCron = new CronSequenceGenerator(ttlExpression);
-        }
-        
-        if (requestMethod == null) {
-            //log.error("Request Method will be defaulted to GET {}", id);
-        }
-        
-        if (!HttpMethod.GET.equals(requestMethod)) {
-            if (requestType == null) {
-                //log.error("Map type will be defaulted if the request type is empty for service {}", id);
-            }
-            if (responseType == null) {
-                //log.warn("Map type will be defaulted if the response type is empty for service {}", id);
-            }
-        }
-        throw new RuntimeException();
     }
 }

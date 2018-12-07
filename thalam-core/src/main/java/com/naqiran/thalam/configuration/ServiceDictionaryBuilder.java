@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.util.Assert;
 
 import com.naqiran.thalam.annotations.AggregatingFunctors;
@@ -71,6 +72,11 @@ public class ServiceDictionaryBuilder {
     private void injectDefaultOrConfigurableMethods() {
         if (CollectionUtils.isNotEmpty(dictionary.getServices())) {
             for (Service service : dictionary.getServices()) {
+                
+                if (CronSequenceGenerator.isValidExpression(service.getTtlExpression())) {
+                    service.setTtlCron(new CronSequenceGenerator(service.getTtlExpression()));
+                }
+                
                 if (service.getPrepare() == null) {
                     service.setPrepare(Function.identity());
                 }
@@ -129,14 +135,7 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceRequest,ServiceRequest> getPrepareFunction(final Object functor, final Method method) {
         final String message = "Prepare method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) :" + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(ServiceRequest.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceRequest.class), message);
-            }
-        }
+        validateLifeCycleFunction(method, message, ServiceRequest.class, ServiceRequest.class);
         return (request) -> {
             try {
                 return (ServiceRequest) method.invoke(functor, request);
@@ -170,14 +169,7 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceRequest,Boolean> getValidateFunction(final Object functor, final Method method) {
         final String message = "Validate method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) : " + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(Boolean.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceRequest.class), message);
-            }
-        }
+        validateLifeCycleFunction(method, message, Boolean.class, ServiceRequest.class);
         return (request) -> {
             try {
                 return (Boolean) method.invoke(functor, request);
@@ -190,15 +182,7 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceResponse,ServiceResponse> getMapFunction(final Object functor, final Method method) {
         final String message = "Map method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) : " + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(ServiceResponse.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceResponse.class), message);
-            }
-        }
-        
+        validateLifeCycleFunction(method, message, ServiceResponse.class, ServiceResponse.class);
         return (response) -> {
             try {
                 return (ServiceResponse) method.invoke(functor, response);
@@ -207,6 +191,17 @@ public class ServiceDictionaryBuilder {
             } 
             return response;
         };
+    }
+    
+    private final void validateLifeCycleFunction(final Method method, final String message, final Class<?> responseType, Class<?>... methodParameters) {
+        Assert.state(method.getReturnType().isAssignableFrom(responseType), message);
+        final Parameter[] parameters = method.getParameters();
+        if (parameters != null && methodParameters != null) {
+            Assert.state(parameters.length == methodParameters.length, message);
+            for (int i=0; i < parameters.length; i++) {
+                Assert.state(parameters[i].getType().equals(methodParameters[i]), message);
+            }
+        }
     }
     
 }

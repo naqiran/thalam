@@ -1,5 +1,6 @@
 package com.naqiran.thalam.controller;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,15 +19,18 @@ import com.naqiran.thalam.configuration.ServiceGroup;
  *
  */
 @RestController
-@RequestMapping("${aggregator.context.path}/dictionary")
+@RequestMapping("${aggregator.context.path}/manage/dictionary")
 public class ServiceDictionaryController {
 
     @Autowired
     private ServiceDictionary dictionary;
     
     @GetMapping
-    public Map<String,Service> getDictionary() {
-        return dictionary.getServiceMap();
+    public Map<String,Object> getDictionary() {
+        Map<String,Object> response = new HashMap<>();
+        response.put("services", dictionary.getServices());
+        response.put("serviceGroups", dictionary.getServiceGroups());
+        return response;
     }
     
     @GetMapping("/service/{id}")

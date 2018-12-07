@@ -168,9 +168,10 @@ public class CoreUtils {
         return response;
     }
     
+    @SuppressWarnings("unchecked")
     public static ServiceResponse aggregateServiceRespone(final ServiceResponse aggregatedResponse, final ServiceResponse simpleResponse) {
         if (simpleResponse.getValue() != null) {
-            ((ArrayList)aggregatedResponse.getValue()).add(simpleResponse.getValue());
+            ((ArrayList<Object>)aggregatedResponse.getValue()).add(simpleResponse.getValue());
         }
         if (CollectionUtils.isNotEmpty(simpleResponse.getMessages())) {
             aggregatedResponse.getMessages().addAll(simpleResponse.getMessages());

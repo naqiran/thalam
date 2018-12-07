@@ -42,28 +42,19 @@ public interface AggregatorCacheService {
     void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
     
     public default Mono<ServiceResponse> getValue(final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
-        ServiceResponse response = null;
         final Service service = request.getService();
         Assert.notNull(service, "Service should not be empty for getting the value from cache");
         final String cacheKey = getCacheKey(service, request);
         final boolean cached = isCached(service);
+        Mono<ServiceResponse> monoResponse = remoteSupplier.get().doOnSuccess(serviceResponse -> {
+            if (serviceResponse != null && serviceResponse.getValue() != null && cached) {
+                putValueinCache(cacheKey, service.getCacheName(),  getCacheWrapper(serviceResponse));
+            }
+        });
         if (cached && !request.getHeaders().containsKey(ThalamConstants.CACHE_OVERRIDE_HEADER)) {
-            response = getResponseFromWrapper(cacheKey, getValueFromCache(cacheKey, service.getCacheName()));
+            return Mono.fromSupplier(() -> getResponseFromWrapper(service, cacheKey, getValueFromCache(cacheKey, service.getCacheName()))).switchIfEmpty(monoResponse);
         }
-        if (response == null) {
-            log.info("Cache Miss - Service Id: {} | Cache Name: {} | Cache Key: {}", service.getId(), service.getCacheName(), cacheKey);
-            Mono<ServiceResponse> monoResponse = remoteSupplier.get().doOnSuccess(serviceResponse -> {
-                if (serviceResponse != null && serviceResponse.getValue() != null && cached) {
-                    putValueinCache(cacheKey, service.getCacheName(),  getCacheWrapper(serviceResponse));
-                }
-            });
-            return monoResponse;
-        } else {
-            log.info("Cache Hit - Service Id: {} | Cache Name: {} | Cache Key: {} | Cached Time:{} | Expiry Time: {}", 
-                                            service.getId(), service.getCacheName(), cacheKey, response.getCachedTime(), 
-                                            response.getExpiryTime());
-            return Mono.just(response);
-        }
+        return monoResponse;
     }
     
     public default boolean isCached(final Service service) {
@@ -96,9 +87,11 @@ public interface AggregatorCacheService {
         return wrapper;
     }
     
-    public default ServiceResponse getResponseFromWrapper(final String cacheKey, final CacheWrapper wrapper) {
+    public default ServiceResponse getResponseFromWrapper(final Service service, final String cacheKey, final CacheWrapper wrapper) {
         ServiceResponse serviceResponse = null;
         if (wrapper != null) {
+            log.info("Cache Hit - Service Id: {} | Cache Key: {} | Cached Time: {} | Expiry Time: {}", service.getId(), cacheKey, 
+                                            wrapper.getCachedTime(), wrapper.getExpiryTime());
             final ServiceMessage message = ServiceMessage.builder().id("CACHED-RESPONSE").message(cacheKey).build();
             serviceResponse = ServiceResponse.builder()
                                             .source(ThalamConstants.CACHE)
@@ -108,7 +101,9 @@ public interface AggregatorCacheService {
                                             .ttl(wrapper.getExpiryTime() != null ? Duration.between(Instant.now(), wrapper.getExpiryTime()): null)
                                             .build();
             serviceResponse.addMessage(message);
-        } 
+        } else {
+            log.info("Cache Miss - Service Id: {} | Cache Key: {}", service.getId(), cacheKey);
+        }
         return serviceResponse;
     }
     
