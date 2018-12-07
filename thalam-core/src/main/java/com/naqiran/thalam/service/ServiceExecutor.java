@@ -1,11 +1,15 @@
 package com.naqiran.thalam.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.naqiran.thalam.cache.AggregatorCacheService;
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
+import com.naqiran.thalam.configuration.ExecutionType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceDictionary;
 import com.naqiran.thalam.configuration.ServiceGroup;
@@ -16,6 +20,7 @@ import com.naqiran.thalam.utils.CoreUtils;
 import com.naqiran.thalam.web.AggregatorWebClient;
 
 import lombok.Data;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -41,9 +46,7 @@ public class ServiceExecutor {
     public Mono<ServiceResponse> execute(final String serviceId, final String version, final ServiceRequest request) {
         ServiceGroup serviceGroup = serviceDictionary.getServiceGroupById(serviceId, version);
         if (serviceGroup != null) {
-            if(serviceGroup.getPrepare() != null) {
-                //final Stream<ServiceRequest> requests = serviceGroup.getPrepare().apply(request);
-            }
+            return executeGroup(serviceGroup, request);
         } else {
             final Service service = serviceDictionary.getServiceById(serviceId, version);
             if (service != null) {
@@ -52,19 +55,42 @@ public class ServiceExecutor {
                 return Mono.error(() -> new ServiceException("No Service or Service Group Exist with the id :" + serviceId));
             }
         }
-        return Mono.error(() -> new ServiceException("Unexpected termination of service look for the logic :" + serviceId));
+    }
+    
+    public Mono<ServiceResponse> executeGroup(final ServiceGroup serviceGroup, final ServiceRequest request) {
+        if (ExecutionType.FORK.equals(serviceGroup.getExecutionType())) {
+            final Stream<ServiceRequest> forkedRequests = serviceGroup.getPrepare().apply(request);
+            final List<Mono<ServiceResponse>> responses = forkedRequests.map(forkedRequest -> {
+                if (serviceGroup.getService() != null) {
+                    return getResponse(serviceGroup.getService(), forkedRequest);
+                } else if (serviceGroup.getServiceGroup() != null) {
+                    return executeGroup(serviceGroup.getServiceGroup(), forkedRequest);
+                } 
+                return Mono.just(new ServiceResponse());
+            }).collect(Collectors.toList());
+            return Flux.merge(responses).collectList().flatMap(respList -> {
+                return Mono.just(respList.stream().reduce(CoreUtils.createServiceRespone(true), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
+            });
+        }
+        return Mono.empty();
     }
     
     public Mono<ServiceResponse> getResponse(final Service service, final ServiceRequest originalRequest) {
         boolean isCached = cacheService.isCached(service);
         final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForService(service, originalRequest);
+        
+        //Prepare the Service Request.
         service.getPrepare().apply(clonedRequest);
-        boolean isValid = service.getValidate().apply(clonedRequest); 
+        
+        //Validate the Service Request.
+        boolean isValid = service.getValidate().apply(clonedRequest);
+        
+        //Map the Service Response after caching.
         if (isValid) {
             if (isCached) {
-                return cacheService.getValue(clonedRequest, () -> client.executeRequest(clonedRequest));
+                return cacheService.getValue(clonedRequest, () -> client.executeRequest(clonedRequest)).map(response -> service.getMap().apply(response));
             } else {
-                return client.executeRequest(clonedRequest);
+                return client.executeRequest(clonedRequest).map(response -> service.getMap().apply(response));
             }
         }
         return Mono.just(ServiceResponse.builder().source("VALIDATION-FAILED").build());

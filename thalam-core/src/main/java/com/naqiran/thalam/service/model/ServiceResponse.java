@@ -12,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Unified Response for Thalam (Platform)
@@ -20,6 +21,7 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ServiceResponse {
     private Object value;

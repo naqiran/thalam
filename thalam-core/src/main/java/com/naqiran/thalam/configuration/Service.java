@@ -11,6 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.scheduling.support.CronSequenceGenerator;
 
 import com.naqiran.thalam.service.model.ServiceRequest;
+import com.naqiran.thalam.service.model.ServiceResponse;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ import lombok.NoArgsConstructor;
 public class Service {
     @NotBlank
     private String id;
+    private String version;
     private String description;
     private String discoveryId;
     private ServiceType type;
@@ -47,9 +49,19 @@ public class Service {
     private Class<?> responseType;
     private Class<?> requestType;
     
-    private Function<ServiceRequest, ServiceRequest> prepare;
+    private Function<ServiceRequest,ServiceRequest> prepare;
     private Function<ServiceRequest, Boolean> validate;
+    private Function<ServiceResponse, ServiceResponse> map;
     private String preValidateExpression;
+    private boolean temp;
+    
+    /**
+     * Identity Constructor
+     */
+    public Service(final String id) {
+        this.id = id;
+        this.temp = true;
+    }
     
     @PostConstruct
     public void servicePostConfiguration() {

@@ -1,13 +1,27 @@
+management:
+  endpoints:
+    web:
+      base-path: manage
+      
 aggregator:
   context:
     path: "/aggregator"
+  cache:
+    enabled: true  
   dictionary:
     name: Sample Description
+    serviceGroups:
+      - id: pet-fork-service
+        service: pet-service
+        executionType: FORK
+        forkAttribute: petId
     services:
-      - id: "get-pet"
+      - id: pet-service
+        cacheEnabled: true
+        cacheKeyFormat: parameters['petId']
+        cacheName: pet-cache
         baseUrl: https://petstore.swagger.io
         path: "/v2/pet/{petId}"
-        requestMethod: GET
-        responseType: java.util.Map
-      - id: "second-service"
-        description: "Test Description"
+        requestMethod: POST
+        ttl: 10m
+        preValidateExpression: "parameters['petId'] != null"

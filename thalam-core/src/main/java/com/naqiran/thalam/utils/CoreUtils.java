@@ -1,5 +1,6 @@
 package com.naqiran.thalam.utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Attribute;
 import com.naqiran.thalam.configuration.AttributeType;
 import com.naqiran.thalam.configuration.Service;
+import com.naqiran.thalam.configuration.ServiceGroup;
 import com.naqiran.thalam.constants.ThalamConstants;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
@@ -76,6 +78,15 @@ public class CoreUtils {
             CoreUtils.decorateAttributes(serviceRequest.getParameters(), service.getParameters());
             CoreUtils.decorateAttributes(serviceRequest.getHeaders(), service.getHeaders());
         }
+        return clonedRequest;
+    }
+    
+    public static ServiceRequest cloneServiceRequestForServiceGroup(final ServiceGroup group, final ServiceRequest serviceRequest) {
+        final ServiceRequest clonedRequest = new ServiceRequest();
+        clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
+        clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
+        clonedRequest.setBody(serviceRequest.getBody());
+        clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
         return clonedRequest;
     }
     
@@ -145,5 +156,25 @@ public class CoreUtils {
             log.error("Error Evaluating Expression: {}", e.getMessage());
         }
         return null;
+    }
+    
+    public static ServiceResponse createServiceRespone(boolean isCollection) {
+        ServiceResponse response = ServiceResponse.builder().build();
+        if (isCollection) {
+            response.setValue(new ArrayList<>());
+        }
+        response.setHeaders(new CaseInsensitiveMap<>());
+        response.setMessages(new ArrayList<>());
+        return response;
+    }
+    
+    public static ServiceResponse aggregateServiceRespone(final ServiceResponse aggregatedResponse, final ServiceResponse simpleResponse) {
+        if (simpleResponse.getValue() != null) {
+            ((ArrayList)aggregatedResponse.getValue()).add(simpleResponse.getValue());
+        }
+        if (CollectionUtils.isNotEmpty(simpleResponse.getMessages())) {
+            aggregatedResponse.getMessages().addAll(simpleResponse.getMessages());
+        }
+        return aggregatedResponse;
     }
 }

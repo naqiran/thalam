@@ -11,6 +11,7 @@ import javax.validation.Valid;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 import org.springframework.validation.annotation.Validated;
 
@@ -61,13 +62,15 @@ public class ServiceDictionary {
         log.info("************************************************************");
     }
     
+    
+
     /**
      * Get the Service by id and version.
      * @param id
      * @param version
      * @return Service
      */
-    public Service getServiceById(final String id, final String version) {
+    public @Nullable Service getServiceById(final String id, final String version) {
         return serviceMap.get(id);
     }
     
@@ -77,7 +80,7 @@ public class ServiceDictionary {
      * @param version
      * @return ServiceGroup
      */
-    public ServiceGroup getServiceGroupById(final String id, final String version) {
+    public @Nullable ServiceGroup getServiceGroupById(final String id, final String version) {
         return serviceGroupMap.get(id);
     }
 }

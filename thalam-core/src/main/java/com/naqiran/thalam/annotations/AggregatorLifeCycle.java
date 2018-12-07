@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AggregatorLifeCycle {
-    LifeCyleMethodType type() default LifeCyleMethodType.NOTHING;
+    LifeCyleMethodType type();
     String service() default "";
     String version() default "";
 }

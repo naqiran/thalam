@@ -14,8 +14,8 @@ import org.springframework.core.annotation.AliasFor;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@AggregatorLifeCycle(type = LifeCyleMethodType.VALIDATE)
-public @interface Validate {
+@AggregatorLifeCycle(type = LifeCyleMethodType.MAP)
+public @interface Map {
     @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "service")
     String service();
     @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "version")

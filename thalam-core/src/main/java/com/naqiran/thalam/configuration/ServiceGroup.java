@@ -16,6 +16,7 @@ import lombok.Data;
 public class ServiceGroup {
     @NotBlank
     private String id;
+    private String version;
     private String description;
     private ExecutionType executionType;
     private Service service;

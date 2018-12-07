@@ -14,12 +14,11 @@ import org.springframework.core.annotation.AliasFor;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@AggregatorLifeCycle
+@AggregatorLifeCycle(type = LifeCyleMethodType.PREPARE)
 public @interface Prepare {
     @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "service")
     String service();
     @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "version")
     String version();
-    @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "type")
-    LifeCyleMethodType type() default LifeCyleMethodType.PREPARE;
+    boolean fork() default false;
 }
