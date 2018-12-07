@@ -3,6 +3,7 @@ package com.naqiran.thalam.configuration;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -27,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ServiceDictionaryBuilder {
     
     @Autowired
-    ConfigurableApplicationContext context;
+    private ConfigurableApplicationContext context;
     
     @Autowired
     private ServiceDictionary dictionary;
@@ -52,6 +53,8 @@ public class ServiceDictionaryBuilder {
                             service.setValidate(getValidateFunction(functor, method));
                         } else if (LifeCyleMethodType.MAP.equals(type)){
                             service.setMap(getMapFunction(functor, method));
+                        } else if (LifeCyleMethodType.ZIP.equals(type)){
+                            service.setZip(getZipFunction(functor, method));
                         }
                     } else {
                         if (serviceGroup != null) {
@@ -77,37 +80,45 @@ public class ServiceDictionaryBuilder {
                 
                 if (service.getValidate() == null) {
                     if (StringUtils.isNotBlank(service.getPreValidateExpression())) {
-                        service.setValidate((request) -> {
+                        service.setValidate(request -> {
                             return Boolean.TRUE.equals(CoreUtils.evaluateSPEL(service.getPreValidateExpression(), request, Boolean.class));
                         });
                     } else {
-                        service.setValidate((request) -> Boolean.TRUE);
+                        service.setValidate(request -> Boolean.TRUE);
                     }
                 }
                 
                 if (service.getMap() == null) {
                     service.setMap(Function.identity());
                 }
+                
+                if (service.getZip() == null) {
+                    service.setZip((resp1, resp2) -> resp1);
+                }
             }
         }
         
         if (CollectionUtils.isNotEmpty(dictionary.getServiceGroups())) {
             for (ServiceGroup group: dictionary.getServiceGroups()) {
-                if (group.getPrepare() == null && StringUtils.isNotBlank(group.getForkAttribute())) {
-                    group.setPrepare(request -> {
-                        String parameter = request.getParameters().get(group.getForkAttribute());
-                        if (StringUtils.isNotBlank(parameter)) {
-                            return Stream.of(parameter.split(",")).map(splitParam -> {
-                                final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request);
-                                clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
-                                return clonedRequest;
-                            });
-                        }
-                        return Stream.of(request);
-                    });
+                if (group.getPrepare() == null) {
+                    if (StringUtils.isNotBlank(group.getForkAttribute())) {
+                        group.setPrepare(request -> {
+                            final String parameter = request.getParameters().get(group.getForkAttribute());
+                            if (StringUtils.isNotBlank(parameter)) {
+                                return Stream.of(parameter.split(",")).map(splitParam -> {
+                                    final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request);
+                                    clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
+                                    return clonedRequest;
+                                });
+                            } 
+                           return Stream.of(request);
+                        });
+                    } else {
+                        group.setPrepare(request -> Stream.of(request));
+                    }
                 }
                 if (group.getPrepare() == null) {
-                    group.setPrepare(request -> Stream.of(request));
+                    
                 }
                 if (group.getService() != null) {
                     final Service service = dictionary.getServiceById(group.getService().getId(), group.getService().getVersion());
@@ -129,19 +140,12 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceRequest,ServiceRequest> getPrepareFunction(final Object functor, final Method method) {
         final String message = "Prepare method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) :" + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(ServiceRequest.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceRequest.class), message);
-            }
-        }
+        validateMethod(method, message, ServiceRequest.class, ServiceRequest.class);
         return (request) -> {
             try {
                 return (ServiceRequest) method.invoke(functor, request);
             } catch (final Exception e) {
-                log.error("Error in preparing the request {} : {}", request.getService().getId(), e);
+                log.error("Error in Lifecycle method {} : {}", method.getName(), e);
             } 
             return request;
         };
@@ -162,7 +166,7 @@ public class ServiceDictionaryBuilder {
             try {
                 return (Stream<ServiceRequest>) method.invoke(functor, request);
             } catch (final Exception e) {
-                log.error("Error in preparing the request {} : {}", request.getService().getId(), e);
+                log.error("Error in Lifecycle method {} : {}", method.getName(), e);
             } 
             return Stream.of(request);
         };
@@ -170,19 +174,12 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceRequest,Boolean> getValidateFunction(final Object functor, final Method method) {
         final String message = "Validate method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) : " + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(Boolean.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceRequest.class), message);
-            }
-        }
+        validateMethod(method, message, Boolean.class, ServiceRequest.class);
         return (request) -> {
             try {
                 return (Boolean) method.invoke(functor, request);
             } catch (final Exception e) {
-                log.error("Error in validating the request {} : {}", request.getService().getId(), e);
+                log.error("Error in Lifecycle method {} : {}", method.getName(), e);
             } 
             return Boolean.FALSE;
         };
@@ -190,23 +187,39 @@ public class ServiceDictionaryBuilder {
     
     private final Function<ServiceResponse,ServiceResponse> getMapFunction(final Object functor, final Method method) {
         final String message = "Map method should be of following signature 'ServiceRequest methodName(final ServiceRequest request) : " + method.getName();
-        Assert.state(method.getReturnType().isAssignableFrom(ServiceResponse.class), message);
-        final Parameter[] parameters = method.getParameters();
-        if (parameters != null) {
-            Assert.state(parameters.length == 1, message);
-            for (final Parameter parameter : parameters) {
-                Assert.state(parameter.getType().equals(ServiceResponse.class), message);
-            }
-        }
-        
+        validateMethod(method, message, ServiceResponse.class, ServiceResponse.class);
         return (response) -> {
             try {
                 return (ServiceResponse) method.invoke(functor, response);
             } catch (final Exception e) {
-                log.error("Error in Mapping the response {}",  e);
+                log.error("Error in Lifecycle method {} : {}", method.getName(), e);
             } 
             return response;
         };
     }
     
+    private final BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> getZipFunction(final Object functor, final Method method) {
+        final String message = "Zip method should be of following signature 'ServiceRequest methodName(final ServiceResponse response1, final ServiceResponse response2) : " + method.getName();
+        validateMethod(method, message, ServiceResponse.class, ServiceResponse.class, ServiceResponse.class);
+        return (response1, response2) -> {
+            try {
+                return (ServiceResponse) method.invoke(functor, response1, response2);
+            } catch (final Exception e) {
+                log.error("Error in Lifecycle method {} : {}", method.getName(), e);
+            } 
+            return response1;
+        };
+    }
+    
+    @SafeVarargs
+    private final void validateMethod(final Method method, final String message, final Class<?> returnType, final Class<?>... parameterTypes) {
+        Assert.state(method.getReturnType().isAssignableFrom(returnType), message);
+        final Parameter[] parameters = method.getParameters();
+        if (parameters != null && parameterTypes != null) {
+            Assert.state(parameters.length == parameterTypes.length, message);
+            for (int i=0; i<parameters.length;i++) {
+                Assert.state(parameters[i].getType().isAssignableFrom(parameterTypes[i]), message);
+            }
+        }
+    }
 }

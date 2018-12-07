@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.core.annotation.AliasFor;
+
 /**
  * 
  * @author Nakkeeran Annamalai
@@ -12,6 +14,10 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@AggregatorLifeCycle(type = LifeCyleMethodType.VALIDATE)
 public @interface Zip {
-
+    @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "service")
+    String service();
+    @AliasFor(annotation = AggregatorLifeCycle.class, attribute = "version")
+    String version();
 }

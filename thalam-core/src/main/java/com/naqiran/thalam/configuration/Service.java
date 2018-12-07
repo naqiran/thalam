@@ -2,6 +2,7 @@ package com.naqiran.thalam.configuration;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
@@ -49,9 +50,10 @@ public class Service {
     private Class<?> responseType;
     private Class<?> requestType;
     
-    private Function<ServiceRequest,ServiceRequest> prepare;
+    private Function<ServiceRequest, ServiceRequest> prepare;
     private Function<ServiceRequest, Boolean> validate;
     private Function<ServiceResponse, ServiceResponse> map;
+    private BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> zip;
     private String preValidateExpression;
     private boolean temp;
     

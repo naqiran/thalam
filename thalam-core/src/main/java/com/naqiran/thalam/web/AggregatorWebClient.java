@@ -123,7 +123,7 @@ public interface AggregatorWebClient {
                 log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
             }).onErrorResume(err -> {
                 final ServiceResponse errorResponse = ServiceResponse.builder().source(url).build();
-                errorResponse.addMessage(ServiceMessage.builder().message(err.getMessage()).build());
+                errorResponse.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").message(err.getMessage()).build());
                 return Mono.just(errorResponse);
             });
         }
