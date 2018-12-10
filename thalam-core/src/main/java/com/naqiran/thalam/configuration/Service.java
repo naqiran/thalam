@@ -49,6 +49,9 @@ public class Service {
     private Class<?> responseType;
     private Class<?> requestType;
     
+    private String sourceExpression;
+    private String targetExpression;
+    
     private Function<ServiceRequest,ServiceRequest> prepare;
     private Function<ServiceRequest, Boolean> validate;
     private Function<ServiceResponse, ServiceResponse> map;

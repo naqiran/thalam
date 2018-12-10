@@ -1,5 +1,7 @@
 package com.naqiran.thalam.utils;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +15,8 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
@@ -21,6 +25,7 @@ import com.naqiran.thalam.configuration.AttributeType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceGroup;
 import com.naqiran.thalam.constants.ThalamConstants;
+import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
 import com.naqiran.thalam.service.model.ServiceResponse;
 
@@ -177,5 +182,32 @@ public class CoreUtils {
             aggregatedResponse.getMessages().addAll(simpleResponse.getMessages());
         }
         return aggregatedResponse;
+    }
+    
+    public static Mono<ServiceResponse> createDummyMonoResponse(final String source, final String message) {
+        return Mono.just(createDummyResponse(source,message));
+    }
+    
+    public static ServiceResponse createDummyResponse(final String source, final String message) {
+        ServiceResponse response = ServiceResponse.builder()
+                                        .source(StringUtils.defaultString(source, ThalamConstants.DUMMY_SOURCE)).build();
+        if (StringUtils.isNotBlank(message)) {
+            response.addMessage(ServiceMessage.builder().message(message).build());
+        }
+        if (ThalamConstants.ZIP_MAP_SOURCE.equals(source)) {
+            response.setValue(new HashMap<String,Object>());
+        }
+        return response;
+    }
+    
+    public static void validateLifeCycleFunction(final Method method, final String message, final Class<?> responseType, Class<?>... methodParameters) {
+        Assert.state(method.getReturnType().isAssignableFrom(responseType), message);
+        final Parameter[] parameters = method.getParameters();
+        if (parameters != null && methodParameters != null) {
+            Assert.state(parameters.length == methodParameters.length, message);
+            for (int i=0; i < parameters.length; i++) {
+                Assert.state(parameters[i].getType().equals(methodParameters[i]), message);
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@ management:
   endpoints:
     web:
       base-path: manage
-      
+         
 aggregator:
   context:
     path: "/aggregator"
@@ -15,6 +15,12 @@ aggregator:
         service: pet-service
         executionType: FORK
         forkAttribute: petId
+      - id: pet-aggr-service
+        executionType: SERIAL
+        zipType: zip-with-map
+        services:
+          - pet-service1
+          - pet-service2 
     services:
       - id: pet-service
         cacheEnabled: true
@@ -25,3 +31,23 @@ aggregator:
         requestMethod: POST
         ttl: 10m
         preValidateExpression: "parameters['petId'] != null"
+      - id: pet-service1
+        cacheEnabled: true
+        cacheKeyFormat: parameters['petId']
+        cacheName: pet-cache
+        baseUrl: https://petstore.swagger.io
+        path: "/v2/pet/{petId}"
+        requestMethod: POST
+        ttl: 10m
+        sourceExpression: childPet
+        preValidateExpression: "parameters['petId'] != null"
+      - id: pet-service2
+        cacheEnabled: true
+        cacheKeyFormat: parameters['petId']
+        cacheName: pet-cache
+        baseUrl: https://petstore.swagger.io
+        path: "/v2/pet/{petId}"
+        requestMethod: POST
+        ttl: 10m
+        sourceExpression: childPet1
+        preValidateExpression: "parameters['petId'] != null"   

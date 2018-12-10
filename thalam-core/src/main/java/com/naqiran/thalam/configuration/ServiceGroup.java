@@ -20,6 +20,7 @@ public class ServiceGroup {
     private String description;
     private ExecutionType executionType;
     private Service service;
+    private String zipType;
     private ServiceGroup serviceGroup;
     private List<Service> services;
     private List<ServiceGroup> serviceGroups;

@@ -94,7 +94,7 @@ public interface AggregatorCacheService {
                                             wrapper.getCachedTime(), wrapper.getExpiryTime());
             final ServiceMessage message = ServiceMessage.builder().id("CACHED-RESPONSE").message(cacheKey).build();
             serviceResponse = ServiceResponse.builder()
-                                            .source(ThalamConstants.CACHE)
+                                            .source(ThalamConstants.CACHE_SOURCE)
                                             .value(wrapper.getValue())
                                             .cachedTime(wrapper.getCachedTime())
                                             .expiryTime(wrapper.getExpiryTime())

@@ -38,9 +38,11 @@ public class ServiceResponse {
     private List<ServiceMessage> messages;
     
     public void addMessage(ServiceMessage serviceMessage) {
-        if (CollectionUtils.isEmpty(messages)) {
-            messages = new ArrayList<>();
+        if (serviceMessage != null) {
+            if (CollectionUtils.isEmpty(messages)) {
+                messages = new ArrayList<>();
+            }
+            messages.add(serviceMessage);
         }
-        messages.add(serviceMessage);
     }
 }
