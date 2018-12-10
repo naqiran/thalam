@@ -69,33 +69,46 @@ public class ServiceExecutor {
                 } else if (serviceGroup.getServiceGroup() != null) {
                     return executeGroup(serviceGroup.getServiceGroup(), forkedRequest);
                 } 
-                return CoreUtils.createDummyMonoResponse("FORKING", "Warning! Check the implementation");
+                return CoreUtils.createMonoServiceResponse(ThalamConstants.FORKING_ERROR_SOURCE, "Warning! Check the Either service or service group should be configured");
             }).collect(Collectors.toList());
             return Flux.merge(responses).collectList().flatMap(respList -> {
-                return Mono.just(respList.stream().reduce(CoreUtils.createServiceRespone(true), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
+                return Mono.just(respList.stream().reduce(CoreUtils.createServiceResponse(ThalamConstants.FORK_LIST_SOURCE, null), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
             });
         } else if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
-            final Stream<ServiceRequest> preparedRequestStream = serviceGroup.getPrepare().apply(request);
-            final ServiceRequest preparedRequest = preparedRequestStream.findFirst().orElse(null);
+            final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
             final List<Service> services = serviceGroup.getServices();
             final String zipType = StringUtils.defaultString(serviceGroup.getZipType(), ThalamConstants.ZIP_DUMMY_SOURCE); 
-            Mono<ServiceResponse> monoResponse = CoreUtils.createDummyMonoResponse(zipType, "Dummy ZIP Response");
+            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(zipType, "Dummy ZIP Response");
             if (CollectionUtils.isNotEmpty(services)) {
                 for (Service service: services) {
                     monoResponse = monoResponse.zipWhen(resp -> getResponse(service,preparedRequest, resp), service.getZip());
                 }
                 return monoResponse;
             } else {
-                return CoreUtils.createDummyMonoResponse(ThalamConstants.SERIAL_ERROR_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
+                return CoreUtils.createMonoServiceResponse(ThalamConstants.SERIAL_ERROR_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
+            }
+        } else if (ExecutionType.PARALLEL.equals(serviceGroup.getExecutionType())) {
+            final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
+            final List<Service> services = serviceGroup.getServices();
+            final String zipType = StringUtils.defaultString(serviceGroup.getZipType(), ThalamConstants.ZIP_DUMMY_SOURCE); 
+            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(zipType, "Dummy ZIP Response");
+            if (CollectionUtils.isNotEmpty(services)) {
+                for (Service service: services) {
+                    monoResponse = monoResponse.zipWith(getResponse(service,preparedRequest, null), service.getZip());
+                }
+                return monoResponse;
+            } else {
+                return CoreUtils.createMonoServiceResponse(ThalamConstants.PARALLEL_ERROR_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
             }
         }
-        return CoreUtils.createDummyMonoResponse(ThalamConstants.NOT_IMPLEMENTED_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
+        return CoreUtils.createMonoServiceResponse(ThalamConstants.NOT_IMPLEMENTED_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
     }
     
     public Mono<ServiceResponse> getResponse(final Service service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
         boolean isCached = cacheService.isCached(service);
         final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForService(service, originalRequest);
-        
+        clonedRequest.setCarriedResponse(previousResponse);
+
         //Prepare the Service Request.
         service.getPrepare().apply(clonedRequest);
         

@@ -163,16 +163,6 @@ public class CoreUtils {
         return null;
     }
     
-    public static ServiceResponse createServiceRespone(boolean isCollection) {
-        ServiceResponse response = ServiceResponse.builder().build();
-        if (isCollection) {
-            response.setValue(new ArrayList<>());
-        }
-        response.setHeaders(new CaseInsensitiveMap<>());
-        response.setMessages(new ArrayList<>());
-        return response;
-    }
-    
     @SuppressWarnings("unchecked")
     public static ServiceResponse aggregateServiceRespone(final ServiceResponse aggregatedResponse, final ServiceResponse simpleResponse) {
         if (simpleResponse.getValue() != null) {
@@ -184,11 +174,11 @@ public class CoreUtils {
         return aggregatedResponse;
     }
     
-    public static Mono<ServiceResponse> createDummyMonoResponse(final String source, final String message) {
-        return Mono.just(createDummyResponse(source,message));
+    public static Mono<ServiceResponse> createMonoServiceResponse(final String source, final String message) {
+        return Mono.just(createServiceResponse(source,message));
     }
     
-    public static ServiceResponse createDummyResponse(final String source, final String message) {
+    public static ServiceResponse createServiceResponse(final String source, final String message) {
         ServiceResponse response = ServiceResponse.builder()
                                         .source(StringUtils.defaultString(source, ThalamConstants.DUMMY_SOURCE)).build();
         if (StringUtils.isNotBlank(message)) {
@@ -196,6 +186,8 @@ public class CoreUtils {
         }
         if (ThalamConstants.ZIP_MAP_SOURCE.equals(source)) {
             response.setValue(new HashMap<String,Object>());
+        } else if (ThalamConstants.FORK_LIST_SOURCE.equals(source)) {
+            response.setValue(new ArrayList<>());
         }
         return response;
     }

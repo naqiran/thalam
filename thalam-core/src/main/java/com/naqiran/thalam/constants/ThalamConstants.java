@@ -13,4 +13,7 @@ public class ThalamConstants {
     public static final String SERIAL_ERROR_SOURCE = "serial-error-response";
     public static final String NOT_IMPLEMENTED_SOURCE = "non-implemented-response";
     public static final String ZIP_DEFAULT_SOURCE = "zip-default-response";
+    public static final String PARALLEL_ERROR_SOURCE = "parallel-error-response";
+    public static final String FORK_LIST_SOURCE = "forking-list-source";
+    public static final String FORKING_ERROR_SOURCE = "forking-error-source";
 }

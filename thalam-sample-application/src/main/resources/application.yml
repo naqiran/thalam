@@ -15,12 +15,18 @@ aggregator:
         service: pet-service
         executionType: FORK
         forkAttribute: petId
-      - id: pet-aggr-service
+      - id: pet-serial-service
         executionType: SERIAL
         zipType: zip-with-map
         services:
           - pet-service1
-          - pet-service2 
+          - pet-service2
+      - id: pet-parallel-service
+        executionType: PARALLEL
+        zipType: zip-with-map
+        services:
+          - pet-service1
+          - pet-service2     
     services:
       - id: pet-service
         cacheEnabled: true

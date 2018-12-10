@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Map;
 
 import org.springframework.http.HttpMethod;
+import org.springframework.lang.Nullable;
 
 import com.naqiran.thalam.configuration.Service;
 
@@ -24,6 +25,10 @@ public class ServiceRequest {
     private Object body;
     private URI uri;
     private HttpMethod requestMethod;
+    
+    @Nullable
     private Service service;
+    
+    @Nullable
     private ServiceResponse carriedResponse;
 }

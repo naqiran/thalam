@@ -280,7 +280,7 @@ public class ServiceDictionaryBuilder {
     }
 
     private ServiceResponse mergeResponse(final ServiceResponse resp1, final ServiceResponse resp2) {
-        final ServiceResponse zippedResponse = CoreUtils.createDummyResponse(ThalamConstants.ZIP_DEFAULT_SOURCE, null);
+        final ServiceResponse zippedResponse = CoreUtils.createServiceResponse(ThalamConstants.ZIP_DEFAULT_SOURCE, null);
         zippedResponse.setMessages(new ArrayList<>());
         if (CollectionUtils.isNotEmpty(resp1.getMessages()) && !ThalamConstants.ZIP_DUMMY_SOURCE.equals(resp1.getSource())) {
             zippedResponse.getMessages().addAll(resp1.getMessages());
