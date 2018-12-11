@@ -37,28 +37,24 @@ public class ServiceDictionary {
     
     @Valid
     private List<ServiceGroup> serviceGroups;
-    private Map<String,Service> serviceMap;
+    private Map<String,BaseService> serviceMap;
     private Map<String,ServiceGroup> serviceGroupMap;
     
     @PostConstruct
     private void buildServices() {
         log.info("Initializing the Service Dictionary {}", name);
+        serviceMap = new HashMap<String,BaseService>();
         if (!CollectionUtils.isEmpty(services)) {
             log.info("******************** Services ******************************");
-            serviceMap = services.stream().peek(service -> log.info("{}", service))
-                                            .collect(Collectors.toMap(Service::getId, Function.identity()));
-        } else {
-            serviceMap = new HashMap<>();
-            log.warn("No Services Configured");
-        }
+            serviceMap.putAll(services.stream().peek(service -> log.info("{}", service))
+                                            .collect(Collectors.toMap(Service::getId, Function.identity())));
+            
+        } 
         if (!CollectionUtils.isEmpty(serviceGroups)) {
             log.info("******************** Service Groups ************************");
-            serviceGroupMap = serviceGroups.stream().peek(serviceGroup -> log.info("{}", serviceGroup))
-                                            .collect(Collectors.toMap(ServiceGroup::getId, Function.identity()));
-        } else {
-            serviceMap = new HashMap<>();
-            log.warn("No Service Groups Configured");
-        }
+            serviceMap.putAll(serviceGroups.stream().peek(serviceGroup -> log.info("{}", serviceGroup))
+                                            .collect(Collectors.toMap(ServiceGroup::getId, Function.identity())));
+        } 
         log.info("************************************************************");
     }
     
@@ -70,17 +66,7 @@ public class ServiceDictionary {
      * @param version
      * @return Service
      */
-    public @Nullable Service getServiceById(final String id, final String version) {
+    public @Nullable BaseService getServiceById(final String id, final String version) {
         return serviceMap.get(id);
-    }
-    
-    /**
-     * Get the ServiceGroup by id and version.
-     * @param id
-     * @param version
-     * @return ServiceGroup
-     */
-    public @Nullable ServiceGroup getServiceGroupById(final String id, final String version) {
-        return serviceGroupMap.get(id);
     }
 }

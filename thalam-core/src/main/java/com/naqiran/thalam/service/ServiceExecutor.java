@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.naqiran.thalam.cache.AggregatorCacheService;
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
+import com.naqiran.thalam.configuration.BaseService;
 import com.naqiran.thalam.configuration.ExecutionType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceDictionary;
@@ -47,41 +48,36 @@ public class ServiceExecutor {
     private AggregatorCacheService cacheService;
     
     public Mono<ServiceResponse> execute(final String serviceId, final String version, final ServiceRequest request) {
-        ServiceGroup serviceGroup = serviceDictionary.getServiceGroupById(serviceId, version);
-        if (serviceGroup != null) {
-            return executeGroup(serviceGroup, request);
+        BaseService service = serviceDictionary.getServiceById(serviceId, version);
+        return getMonoServiceResponse(service, request, null);
+    }
+    
+    public Mono<ServiceResponse> getMonoServiceResponse(final BaseService service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
+        if (service instanceof Service) {
+            return executeRequest((Service) service, originalRequest, previousResponse);
+        } else if (service instanceof ServiceGroup){
+            return executeGroupRequest((ServiceGroup)service, originalRequest);
         } else {
-            final Service service = serviceDictionary.getServiceById(serviceId, version);
-            if (service != null) {
-                return getResponse(service,request, null);
-            } else {
-                return Mono.error(() -> new ServiceException("No Service or Service Group Exist with the id: " + serviceId));
-            }
+            return Mono.error(() -> new ServiceException("No Service or Service Group Exist with the id: " + service.getId()));
         }
     }
     
-    public Mono<ServiceResponse> executeGroup(final ServiceGroup serviceGroup, final ServiceRequest request) {
+    public Mono<ServiceResponse> executeGroupRequest(final ServiceGroup serviceGroup, final ServiceRequest request) {
         if (ExecutionType.FORK.equals(serviceGroup.getExecutionType())) {
             final Stream<ServiceRequest> forkedRequests = serviceGroup.getPrepare().apply(request);
-            final List<Mono<ServiceResponse>> responses = forkedRequests.map(forkedRequest -> {
-                if (serviceGroup.getService() != null) {
-                    return getResponse(serviceGroup.getService(), forkedRequest, null);
-                } else if (serviceGroup.getServiceGroup() != null) {
-                    return executeGroup(serviceGroup.getServiceGroup(), forkedRequest);
-                } 
-                return CoreUtils.createMonoServiceResponse(ThalamConstants.FORKING_ERROR_SOURCE, "Warning! Check the Either service or service group should be configured");
-            }).collect(Collectors.toList());
+            final List<Mono<ServiceResponse>> responses = forkedRequests.map(forkedRequest -> getMonoServiceResponse(serviceGroup.getService(), forkedRequest, null))
+                                            .collect(Collectors.toList());
             return Flux.merge(responses).collectList().flatMap(respList -> {
-                return Mono.just(respList.stream().reduce(CoreUtils.createServiceResponse(ThalamConstants.FORK_LIST_SOURCE, null), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
+                return Mono.just(respList.stream().reduce(CoreUtils.createServiceResponse(ThalamConstants.FORK_LIST_SOURCE, "Fork Request"), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
             });
         } else if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
             final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
-            final List<Service> services = serviceGroup.getServices();
+            final List<BaseService> services = serviceGroup.getServices();
             final String zipType = StringUtils.defaultString(serviceGroup.getZipType(), ThalamConstants.ZIP_DUMMY_SOURCE); 
             Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(zipType, "Dummy ZIP Response");
             if (CollectionUtils.isNotEmpty(services)) {
-                for (Service service: services) {
-                    monoResponse = monoResponse.zipWhen(resp -> getResponse(service,preparedRequest, resp), service.getZip());
+                for (BaseService service: services) {
+                    monoResponse = monoResponse.zipWhen(resp -> getMonoServiceResponse(service,preparedRequest, resp), service.getZip());
                 }
                 return monoResponse;
             } else {
@@ -89,12 +85,12 @@ public class ServiceExecutor {
             }
         } else if (ExecutionType.PARALLEL.equals(serviceGroup.getExecutionType())) {
             final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
-            final List<Service> services = serviceGroup.getServices();
+            final List<BaseService> services = serviceGroup.getServices();
             final String zipType = StringUtils.defaultString(serviceGroup.getZipType(), ThalamConstants.ZIP_DUMMY_SOURCE); 
             Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(zipType, "Dummy ZIP Response");
             if (CollectionUtils.isNotEmpty(services)) {
-                for (Service service: services) {
-                    monoResponse = monoResponse.zipWith(getResponse(service,preparedRequest, null), service.getZip());
+                for (BaseService service: services) {
+                    monoResponse = monoResponse.zipWith(getMonoServiceResponse((Service) service,preparedRequest, null), service.getZip());
                 }
                 return monoResponse;
             } else {
@@ -104,7 +100,7 @@ public class ServiceExecutor {
         return CoreUtils.createMonoServiceResponse(ThalamConstants.NOT_IMPLEMENTED_SOURCE, "Check the serial service group config : " + serviceGroup.getId());
     }
     
-    public Mono<ServiceResponse> getResponse(final Service service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
+    public Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
         boolean isCached = cacheService.isCached(service);
         final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForService(service, originalRequest);
         clonedRequest.setCarriedResponse(previousResponse);
@@ -123,7 +119,7 @@ public class ServiceExecutor {
                 return client.executeRequest(clonedRequest).map(response -> service.getMap().apply(response));
             }
         }
-        return Mono.fromSupplier(() -> ServiceResponse.builder().source("VALIDATION-FAILED").build());
+        return CoreUtils.createMonoServiceResponse(ThalamConstants.VALIDATION_FAILED, null);
     }
     
     public void wrapCircuitBreaker() {

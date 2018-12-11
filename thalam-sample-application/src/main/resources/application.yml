@@ -21,8 +21,10 @@ aggregator:
         services:
           - pet-service1
           - pet-service2
+          - pet-parallel-service
       - id: pet-parallel-service
         executionType: PARALLEL
+        sourceExpression: parallel-childs
         zipType: zip-with-map
         services:
           - pet-service1

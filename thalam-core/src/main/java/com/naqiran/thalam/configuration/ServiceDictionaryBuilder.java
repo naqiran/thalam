@@ -54,11 +54,14 @@ public class ServiceDictionaryBuilder {
                     final String serviceId = lifeCycleAnnotations.getString("service");
                     final String version = lifeCycleAnnotations.getString("version");
                     final LifeCyleMethodType type = (LifeCyleMethodType) lifeCycleAnnotations.get("type");
-                    final Service service = dictionary.getServiceById(serviceId, version);
-                    final ServiceGroup serviceGroup = dictionary.getServiceGroupById(serviceId, version);
+                    final BaseService service = dictionary.getServiceById(serviceId, version);
                     if (service != null) {
                         if (LifeCyleMethodType.PREPARE.equals(type)) {
-                            service.setPrepare(getPrepareFunction(functor, method));
+                            if (service instanceof Service) {
+                                ((Service)service).setPrepare(getPrepareFunction(functor, method));
+                            } else if (service instanceof ServiceGroup) {
+                                ((ServiceGroup)service).setPrepare(getPrepareGroupFunction(functor, method));
+                            }
                         }
                         else if (LifeCyleMethodType.VALIDATE.equals(type)) {
                             service.setValidate(getValidateFunction(functor, method));
@@ -69,14 +72,8 @@ public class ServiceDictionaryBuilder {
                         else if (LifeCyleMethodType.ZIP.equals(type)) {
                             service.setZip(getZipFunction(functor, method));
                         }
-                    }
-                    else {
-                        if (serviceGroup != null) {
-                            if (LifeCyleMethodType.PREPARE.equals(type)) {
-                                serviceGroup.setPrepare(getPrepareGroupFunction(functor, method));
-                            }
-                        }
-                        log.warn("Check the lifecycle method not configured {} : {} : {}", serviceId, version, type);
+                    } else {
+                        log.warn("Check the lifecycle method  '{}' not configured for Service Id: {} | Version: {} | Type: {}", method.toString(), serviceId, version, type);
                     }
                 }
             }
@@ -86,50 +83,53 @@ public class ServiceDictionaryBuilder {
     }
 
     private void injectDefaultOrConfigurableMethods() {
-        if (CollectionUtils.isNotEmpty(dictionary.getServices())) {
-            for (Service service : dictionary.getServices()) {
-
-                if (CronSequenceGenerator.isValidExpression(service.getTtlExpression())) {
-                    service.setTtlCron(new CronSequenceGenerator(service.getTtlExpression()));
+        if (CollectionUtils.isNotEmpty(dictionary.getServiceMap().entrySet())) {
+            for (BaseService baseService : dictionary.getServiceMap().values()) {
+                if (baseService instanceof Service) {
+                    Service service = (Service) baseService;
+                    if (CronSequenceGenerator.isValidExpression(service.getTtlExpression())) {
+                        service.setTtlCron(new CronSequenceGenerator(service.getTtlExpression()));
+                    }
+                    if (service.getPrepare() == null) {
+                        service.setPrepare(Function.identity());
+                    }
+                } else if (baseService instanceof ServiceGroup) {
+                    ServiceGroup group = (ServiceGroup) baseService;
+                    
+                    if (group.getPrepare() == null && StringUtils.isNotBlank(group.getForkAttribute())) {
+                        group.setPrepare(request -> {
+                            String parameter = request.getParameters().get(group.getForkAttribute());
+                            if (StringUtils.isNotBlank(parameter)) {
+                                return Stream.of(parameter.split(",")).map(splitParam -> {
+                                    final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request);
+                                    clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
+                                    return clonedRequest;
+                                });
+                            }
+                            return Stream.of(request);
+                        });
+                    }
+                    if (group.getPrepare() == null) {
+                        group.setPrepare(request -> Stream.of(request));
+                    }
                 }
 
-                if (service.getPrepare() == null) {
-                    service.setPrepare(Function.identity());
+                if (baseService.getValidate() == null) {
+                    baseService.setValidate(getDefaultValidateMethod(baseService));
                 }
 
-                if (service.getValidate() == null) {
-                    service.setValidate(getDefaultValidateMethod(service));
+                if (baseService.getMap() == null) {
+                    baseService.setMap(Function.identity());
                 }
 
-                if (service.getMap() == null) {
-                    service.setMap(Function.identity());
-                }
-
-                if (service.getZip() == null) {
-                    service.setZip(getDefaultZipMethod(service));
+                if (baseService.getZip() == null) {
+                    baseService.setZip(getDefaultZipMethod(baseService));
                 }
             }
         }
 
         if (CollectionUtils.isNotEmpty(dictionary.getServiceGroups())) {
             for (ServiceGroup group : dictionary.getServiceGroups()) {
-                if (group.getPrepare() == null && StringUtils.isNotBlank(group.getForkAttribute())) {
-                    group.setPrepare(request -> {
-                        String parameter = request.getParameters().get(group.getForkAttribute());
-                        if (StringUtils.isNotBlank(parameter)) {
-                            return Stream.of(parameter.split(",")).map(splitParam -> {
-                                final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request);
-                                clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
-                                return clonedRequest;
-                            });
-                        }
-                        return Stream.of(request);
-                    });
-                }
-                if (group.getPrepare() == null) {
-                    group.setPrepare(request -> Stream.of(request));
-                }
-
                 // Replace with the actual instance of the service.
                 if (group.getService() != null) {
                     group.setService(getServiceById(group.getService()));
@@ -137,24 +137,13 @@ public class ServiceDictionaryBuilder {
                 if (group.getServices() != null) {
                     group.setServices(group.getServices().stream().map(svc -> getServiceById(svc)).collect(Collectors.toList()));
                 }
-                if (group.getServiceGroup() != null) {
-                    group.setServiceGroup(getServiceGroupById(group.getServiceGroup()));
-                }
-                if (group.getServiceGroups() != null) {
-                    group.setServiceGroups(group.getServiceGroups().stream().map(svc -> getServiceGroupById(svc)).collect(Collectors.toList()));
-                }
             }
         }
     }
 
-    private Service getServiceById(final Service tempService) {
+    private BaseService getServiceById(final BaseService tempService) {
         return Optional.ofNullable(dictionary.getServiceById(tempService.getId(), tempService.getVersion())).orElseThrow(
                                         () -> new IllegalStateException("No Service Exist with the id: " + tempService.getId()));
-    }
-
-    private ServiceGroup getServiceGroupById(final ServiceGroup tempServiceGroup) {
-        return Optional.ofNullable(dictionary.getServiceGroupById(tempServiceGroup.getId(), tempServiceGroup.getVersion())).orElseThrow(
-                                        () -> new IllegalStateException("No Service Group Exist with the id: " + tempServiceGroup.getId()));
     }
 
     private final Function<ServiceRequest, ServiceRequest> getPrepareFunction(final Object functor, final Method method) {
@@ -207,7 +196,7 @@ public class ServiceDictionaryBuilder {
         };
     }
 
-    private Function<ServiceRequest, Boolean> getDefaultValidateMethod(final Service service) {
+    private Function<ServiceRequest, Boolean> getDefaultValidateMethod(final BaseService service) {
         if (StringUtils.isNotBlank(service.getPreValidateExpression())) {
             return (request) -> {
                 return Boolean.TRUE.equals(CoreUtils.evaluateSPEL(service.getPreValidateExpression(), request, Boolean.class));
@@ -247,7 +236,7 @@ public class ServiceDictionaryBuilder {
     }
 
     @SuppressWarnings("unchecked")
-    private BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> getDefaultZipMethod(final Service service) {
+    private BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> getDefaultZipMethod(final BaseService service) {
         return (sourceResponse, targetResponse) -> {
             final ExpressionParser parser = new SpelExpressionParser();
             final Expression targetExpression = service.getTargetExpression() != null ? parser.parseExpression(service.getTargetExpression()) : null;

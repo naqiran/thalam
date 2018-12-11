@@ -16,4 +16,5 @@ public class ThalamConstants {
     public static final String PARALLEL_ERROR_SOURCE = "parallel-error-response";
     public static final String FORK_LIST_SOURCE = "forking-list-source";
     public static final String FORKING_ERROR_SOURCE = "forking-error-source";
+    public static final String VALIDATION_FAILED = "validation-failed";
 }

@@ -45,7 +45,7 @@ public class ServiceDictionaryValidator implements Validator {
 
     public void validateServiceGroup(final ServiceGroup target, final Errors errors) {
         if (ExecutionType.FORK.equals(target.getExecutionType())) {
-            if (target.getService() == null && target.getServiceGroup() == null) {
+            if (target.getService() == null) {
                 errors.reject("servicegroup.empty.fork", "Either Service or Service Group should be configured for forking");
             }
         }

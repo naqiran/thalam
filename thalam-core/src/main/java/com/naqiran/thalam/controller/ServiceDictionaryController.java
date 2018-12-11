@@ -1,17 +1,16 @@
 package com.naqiran.thalam.controller;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.naqiran.thalam.configuration.Service;
+import com.naqiran.thalam.configuration.BaseService;
 import com.naqiran.thalam.configuration.ServiceDictionary;
-import com.naqiran.thalam.configuration.ServiceGroup;
 
 /**
  * Dictionary End points for Thalam (Platform) 
@@ -26,23 +25,15 @@ public class ServiceDictionaryController {
     private ServiceDictionary dictionary;
     
     @GetMapping
-    public Map<String,Object> getDictionary() {
-        Map<String,Object> response = new HashMap<>();
-        response.put("services", dictionary.getServices());
-        response.put("serviceGroups", dictionary.getServiceGroups());
-        return response;
+    public Map<String,BaseService> getDictionary() {
+        return dictionary.getServiceMap();
     }
     
-    @GetMapping("/service/{id}")
-    public ResponseEntity<?> getService(final String id) {
-        ServiceGroup serviceGroup = dictionary.getServiceGroupMap().get(id);
-        if (serviceGroup != null) {
-            return ResponseEntity.ok().body(serviceGroup);
-        } else {
-            Service service = dictionary.getServiceMap().get(id);
-            if (service != null) {
-                return ResponseEntity.ok().body(serviceGroup);
-            }
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getService(final @PathVariable(name = "id") String id) {
+        BaseService service = dictionary.getServiceMap().get(id);
+        if (service != null) {
+            return ResponseEntity.ok().body(service);
         }
         return ResponseEntity.notFound().build(); 
     }
