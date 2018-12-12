@@ -52,16 +52,14 @@ public class CoreUtils {
     public static ServiceRequest createServiceRequest(final ServerHttpRequest request, final AggregatorCoreConfiguration configuration) {
         final ServiceRequest serviceRequest = new ServiceRequest();
         final Map<String,String> headerMap = CoreUtils.toSingleValuedMap(request.getHeaders(), ThalamConstants.CASE_INSENSITIVE_MAP);
-        serviceRequest.setHeaders(headerMap);
-        
         final Map<String,String> parametersMap = CoreUtils.toSingleValuedMap(request.getQueryParams(), null);
-        serviceRequest.setParameters(parametersMap);
-        
         //Decorate the default value from the configuration.
         if (configuration != null && configuration.getWeb() != null) {
             CoreUtils.decorateAttributes(headerMap, configuration.getWeb().getHeaders());
             CoreUtils.decorateAttributes(parametersMap, configuration.getWeb().getParameters());
         }
+        serviceRequest.setHeaders(headerMap);
+        serviceRequest.setParameters(parametersMap);
         
         return serviceRequest;
     }
@@ -72,26 +70,33 @@ public class CoreUtils {
      * @param serviceRequest
      * @return ServiceRequest
      */
-    public static ServiceRequest cloneServiceRequestForService(final Service service, final ServiceRequest serviceRequest) {
+    public static ServiceRequest cloneServiceRequestForService(final Service service, final ServiceRequest serviceRequest, final ServiceResponse previousResponse) {
         final ServiceRequest clonedRequest = new ServiceRequest();
         if (serviceRequest != null) {
             clonedRequest.setService(service);
-            clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
-            clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
+
+            final Map<String,String> headers = new CaseInsensitiveMap<>(serviceRequest.getHeaders());
+            CoreUtils.decorateAttributes(headers, service.getHeaders());
+            clonedRequest.setHeaders(headers);
+            
+            final Map<String,String> parameters = new HashMap<>(serviceRequest.getParameters());
+            CoreUtils.decorateAttributes(parameters, service.getParameters());
+            clonedRequest.setParameters(parameters);
+            
             clonedRequest.setBody(serviceRequest.getBody());
             clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
-            CoreUtils.decorateAttributes(serviceRequest.getParameters(), service.getParameters());
-            CoreUtils.decorateAttributes(serviceRequest.getHeaders(), service.getHeaders());
+            clonedRequest.setCarriedResponse(serviceRequest.getCarriedResponse());
         }
         return clonedRequest;
     }
     
-    public static ServiceRequest cloneServiceRequestForServiceGroup(final ServiceGroup group, final ServiceRequest serviceRequest) {
+    public static ServiceRequest cloneServiceRequestForServiceGroup(final ServiceGroup group, final ServiceRequest serviceRequest, final ServiceResponse previousResponse) {
         final ServiceRequest clonedRequest = new ServiceRequest();
         clonedRequest.setHeaders(new CaseInsensitiveMap<>(serviceRequest.getHeaders()));
         clonedRequest.setParameters(new HashMap<>(serviceRequest.getParameters()));
         clonedRequest.setBody(serviceRequest.getBody());
         clonedRequest.setRequestMethod(serviceRequest.getRequestMethod());
+        clonedRequest.setCarriedResponse(previousResponse);
         return clonedRequest;
     }
     

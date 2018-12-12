@@ -101,7 +101,7 @@ public class ServiceDictionaryBuilder {
                             String parameter = request.getParameters().get(group.getForkAttribute());
                             if (StringUtils.isNotBlank(parameter)) {
                                 return Stream.of(parameter.split(",")).map(splitParam -> {
-                                    final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request);
+                                    final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request, null);
                                     clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
                                     return clonedRequest;
                                 });
@@ -241,29 +241,31 @@ public class ServiceDictionaryBuilder {
             final ExpressionParser parser = new SpelExpressionParser();
             final Expression targetExpression = service.getTargetExpression() != null ? parser.parseExpression(service.getTargetExpression()) : null;
             final ServiceResponse mergedResponse = mergeResponse(sourceResponse, targetResponse);
-            if (sourceResponse != null && targetResponse != null && sourceResponse.getValue() != null && targetResponse.getValue() != null) {
+            if (sourceResponse != null && targetResponse != null) {
                 try {
                     Object targetValue = targetResponse.getValue();
-                    if (targetExpression != null) {
+                    if (targetExpression != null && targetResponse.getValue() != null) {
                         targetValue = targetExpression.getValue(targetResponse.getValue());
                     }
-                    if (StringUtils.isNotBlank(service.getSourceExpression())) {
+                    if (StringUtils.isNotBlank(service.getSourceExpression()) && sourceResponse.getValue() != null) {
                         if (sourceResponse.getValue() instanceof Map) {
                             ((Map<String,Object>)sourceResponse.getValue()).put(service.getSourceExpression(), targetValue);
                         } else {
                             final Expression sourceExpression = service.getSourceExpression() != null ? parser.parseExpression(service.getSourceExpression()) : null;
                             sourceExpression.setValue(sourceResponse.getValue(), targetValue);
                         }
+                        mergedResponse.setValue(sourceResponse.getValue());
+                    } else if (targetResponse.getValue() != null) {
+                        mergedResponse.setValue(targetResponse.getValue());
+                    } else if (sourceResponse.getValue() != null) {
+                        mergedResponse.setValue(sourceResponse.getValue());
                     }
-                    mergedResponse.setValue(sourceResponse.getValue());
                 } catch (Exception e) {
                     log.error("Exception in Zipping the Service", e);
                     ServiceMessage serviceMessage = ServiceMessage.builder().message("Exception in Zipping: " + e.getMessage()).exception(e).build();
                     mergedResponse.addMessage(serviceMessage);
                 }
-            } else {
-                mergedResponse.setValue(targetResponse.getValue());
-            }
+            } 
             return mergedResponse;
         };
     }

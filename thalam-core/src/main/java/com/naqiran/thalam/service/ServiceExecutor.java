@@ -56,13 +56,14 @@ public class ServiceExecutor {
         if (service instanceof Service) {
             return executeRequest((Service) service, originalRequest, previousResponse);
         } else if (service instanceof ServiceGroup){
-            return executeGroupRequest((ServiceGroup)service, originalRequest);
+            return executeGroupRequest((ServiceGroup)service, originalRequest, previousResponse);
         } else {
             return Mono.error(() -> new ServiceException("No Service or Service Group Exist with the id: " + service.getId()));
         }
     }
     
-    public Mono<ServiceResponse> executeGroupRequest(final ServiceGroup serviceGroup, final ServiceRequest request) {
+    public Mono<ServiceResponse> executeGroupRequest(final ServiceGroup serviceGroup, final ServiceRequest request, final ServiceResponse previousResponse) {
+        request.setCarriedResponse(previousResponse);
         if (ExecutionType.FORK.equals(serviceGroup.getExecutionType())) {
             final Stream<ServiceRequest> forkedRequests = serviceGroup.getPrepare().apply(request);
             final List<Mono<ServiceResponse>> responses = forkedRequests.map(forkedRequest -> getMonoServiceResponse(serviceGroup.getService(), forkedRequest, null))
@@ -102,8 +103,7 @@ public class ServiceExecutor {
     
     public Mono<ServiceResponse> executeRequest(final Service service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
         boolean isCached = cacheService.isCached(service);
-        final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForService(service, originalRequest);
-        clonedRequest.setCarriedResponse(previousResponse);
+        final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForService(service, originalRequest, previousResponse);
 
         //Prepare the Service Request.
         service.getPrepare().apply(clonedRequest);

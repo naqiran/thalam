@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.Map.Entry;
 
@@ -17,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.naqiran.thalam.configuration.Service;
@@ -112,7 +114,7 @@ public interface AggregatorWebClient {
             final String url = request.getUri().toString();
             client = WebClient.create();
             final HttpMethod requestMethod = Optional.ofNullable(request.getRequestMethod()).orElse(HttpMethod.GET);
-            Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).retrieve().bodyToMono(service.getResponseType());
+            Mono<?> monoResponse = client.method(requestMethod).uri(request.getUri()).headers(addHeaders(request)).retrieve().bodyToMono(service.getResponseType());
             return monoResponse.map(resp -> {
                 log.info("Remote Request - Service Id: {} | URL: {}", service.getId(), url);
                 final ServiceMessage message = ServiceMessage.builder().id("REMOTE-RESPONSE").message(url).build();
@@ -122,10 +124,20 @@ public interface AggregatorWebClient {
             }).doOnError(err -> {
                 log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
             }).onErrorResume(err -> {
+                String message = err.getMessage();
+                if (err instanceof WebClientResponseException) {
+                    message = err.getMessage() + "--->" + ((WebClientResponseException) err).getResponseBodyAsString();
+                }
                 final ServiceResponse errorResponse = ServiceResponse.builder().source(url).build();
-                errorResponse.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").type(ServiceMessageType.ERROR).message(err.getMessage()).build());
+                errorResponse.addMessage(ServiceMessage.builder().id("REMOTE-RESPONSE").type(ServiceMessageType.ERROR).message(message).build());
                 return Mono.just(errorResponse);
             });
+        }
+        
+        public Consumer<HttpHeaders> addHeaders(final ServiceRequest serviceRequest) {
+            return (httpHeaders) -> {
+                serviceRequest.getHeaders().entrySet().stream().forEach(entry -> httpHeaders.add(entry.getKey(),entry.getValue()));
+            };
         }
         
         @Override
