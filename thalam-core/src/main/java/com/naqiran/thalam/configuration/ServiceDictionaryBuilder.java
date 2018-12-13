@@ -223,15 +223,15 @@ public class ServiceDictionaryBuilder {
         final String message = "Zip method should be of following signature 'ServiceResponse methodName(ServiceResponse, ServiceResponse) :"
                                         + method.getName();
         CoreUtils.validateLifeCycleFunction(method, message, ServiceResponse.class, ServiceResponse.class, ServiceResponse.class);
-        return (response1, response2) -> {
+        return (sourceResponse, targetResponse) -> {
             try {
-                final ServiceResponse mergedDefaultResponse = mergeResponse(response1, response2);
-                final ServiceResponse mergedResponse = (ServiceResponse) method.invoke(functor, response1, response2);
+                final ServiceResponse mergedDefaultResponse = mergeResponse(sourceResponse, targetResponse);
+                final ServiceResponse mergedResponse = (ServiceResponse) method.invoke(functor, sourceResponse, targetResponse);
                 mergedDefaultResponse.setValue(mergedResponse.getValue());
             } catch (final Exception e) {
                 log.error("Error in Mapping the response {}", e);
             }
-            return response1;
+            return sourceResponse;
         };
     }
 
@@ -243,6 +243,9 @@ public class ServiceDictionaryBuilder {
             final ServiceResponse mergedResponse = mergeResponse(sourceResponse, targetResponse);
             if (sourceResponse != null && targetResponse != null) {
                 try {
+                    if (StringUtils.isBlank(service.getSourceExpression()) && StringUtils.isBlank(service.getTargetExpression())) {
+                        log.warn("No Zipping Information: {}", service.getId());
+                    }
                     Object targetValue = targetResponse.getValue();
                     if (targetExpression != null && targetResponse.getValue() != null) {
                         targetValue = targetExpression.getValue(targetResponse.getValue());
@@ -261,7 +264,6 @@ public class ServiceDictionaryBuilder {
                         mergedResponse.setValue(sourceResponse.getValue());
                     }
                 } catch (Exception e) {
-                    log.error("Exception in Zipping the Service", e);
                     ServiceMessage serviceMessage = ServiceMessage.builder().message("Exception in Zipping: " + e.getMessage()).exception(e).build();
                     mergedResponse.addMessage(serviceMessage);
                 }
@@ -270,14 +272,14 @@ public class ServiceDictionaryBuilder {
         };
     }
 
-    private ServiceResponse mergeResponse(final ServiceResponse resp1, final ServiceResponse resp2) {
+    private ServiceResponse mergeResponse(final ServiceResponse sourceResponse, final ServiceResponse targetResponse) {
         final ServiceResponse zippedResponse = CoreUtils.createServiceResponse(ThalamConstants.ZIP_DEFAULT_SOURCE, null);
         zippedResponse.setMessages(new ArrayList<>());
-        if (CollectionUtils.isNotEmpty(resp1.getMessages()) && !ThalamConstants.ZIP_DUMMY_SOURCE.equals(resp1.getSource())) {
-            zippedResponse.getMessages().addAll(resp1.getMessages());
+        if (CollectionUtils.isNotEmpty(sourceResponse.getMessages()) && !ThalamConstants.ZIP_DUMMY_SOURCE.equals(sourceResponse.getSource())) {
+            zippedResponse.getMessages().addAll(sourceResponse.getMessages());
         }
-        if (CollectionUtils.isNotEmpty(resp2.getMessages())) {
-            zippedResponse.getMessages().addAll(resp2.getMessages());
+        if (CollectionUtils.isNotEmpty(targetResponse.getMessages())) {
+            zippedResponse.getMessages().addAll(targetResponse.getMessages());
         }
         return zippedResponse;
     }

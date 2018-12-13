@@ -12,6 +12,7 @@ import com.naqiran.thalam.service.model.ServiceRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Service Description
@@ -21,6 +22,7 @@ import lombok.NoArgsConstructor;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
+@ToString(callSuper = true)
 public class Service extends BaseService {
     private String description;
     private String discoveryId;
