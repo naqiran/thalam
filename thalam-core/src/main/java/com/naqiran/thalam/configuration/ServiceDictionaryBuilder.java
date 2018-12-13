@@ -254,7 +254,7 @@ public class ServiceDictionaryBuilder {
                         if (sourceResponse.getValue() instanceof Map) {
                             ((Map<String,Object>)sourceResponse.getValue()).put(service.getSourceExpression(), targetValue);
                         } else {
-                            final Expression sourceExpression = service.getSourceExpression() != null ? parser.parseExpression(service.getSourceExpression()) : null;
+                            final Expression sourceExpression = parser.parseExpression(service.getSourceExpression());
                             sourceExpression.setValue(sourceResponse.getValue(), targetValue);
                         }
                         mergedResponse.setValue(sourceResponse.getValue());
@@ -280,6 +280,20 @@ public class ServiceDictionaryBuilder {
         }
         if (CollectionUtils.isNotEmpty(targetResponse.getMessages())) {
             zippedResponse.getMessages().addAll(targetResponse.getMessages());
+        }
+        if (sourceResponse.getFailureType() != null && targetResponse.getFailureType() != null) {
+            zippedResponse.setFailureType(sourceResponse.getFailureType().getPriority() > targetResponse.getFailureType().getPriority() ? sourceResponse.getFailureType() : targetResponse.getFailureType());
+        } else if (sourceResponse.getFailureType() != null) {
+            zippedResponse.setFailureType(sourceResponse.getFailureType());
+        } else {
+            zippedResponse.setFailureType(targetResponse.getFailureType());
+        }
+        if (sourceResponse.getTtl() != null && targetResponse.getTtl() != null) {
+            zippedResponse.setTtl(sourceResponse.getTtl().compareTo(targetResponse.getTtl()) > 0 ? sourceResponse.getTtl() : targetResponse.getTtl());
+        } else if (sourceResponse.getTtl() != null) {
+            zippedResponse.setTtl(sourceResponse.getTtl());
+        } else {
+            zippedResponse.setTtl(targetResponse.getTtl());
         }
         return zippedResponse;
     }

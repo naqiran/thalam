@@ -8,6 +8,8 @@ import java.util.Map;
 
 import org.springframework.util.CollectionUtils;
 
+import com.naqiran.thalam.configuration.FailureType;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +31,7 @@ public class ServiceResponse {
     private boolean cached;
     private Duration ttl;
     private String source;
+    private FailureType failureType;
     
     @Builder.Default
     private final Instant currentTime = Instant.now();

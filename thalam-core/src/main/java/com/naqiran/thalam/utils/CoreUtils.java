@@ -6,22 +6,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Attribute;
 import com.naqiran.thalam.configuration.AttributeType;
+import com.naqiran.thalam.configuration.FailureType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceGroup;
 import com.naqiran.thalam.constants.ThalamConstants;
@@ -144,6 +149,13 @@ public class CoreUtils {
      */
     public static Mono<?> toResponse(final ServiceRequest request, final Mono<ServiceResponse> response, final ServerHttpRequest serverRequest, final ServerHttpResponse serverResponse) {
         return response.map(resp -> {
+            if (FailureType.FAIL_PARTIAL.equals(resp.getFailureType())) {
+                serverResponse.setStatusCode(HttpStatus.PARTIAL_CONTENT);
+            } else {
+                if (resp.getTtl() != null) {
+                    serverResponse.getHeaders().setCacheControl(CacheControl.maxAge(resp.getTtl().toMillis(), TimeUnit.MILLISECONDS));
+                }
+            }
             if (request.getHeaders().containsKey(ThalamConstants.DEBUG_HEADER) || resp.getValue() == null) {
                 return resp;
             }
@@ -207,4 +219,22 @@ public class CoreUtils {
             }
         }
     }
+    
+    public static boolean isResumableFailure(final Service service) {
+        return service.getFailureType() == null || !(FailureType.FAIL_ALL.equals(service.getFailureType()) || FailureType.FAIL_GROUP.equals(service.getFailureType()));
+    }
+    
+    public static long getCacheControlHeader(String cacheControl) {
+        if (StringUtils.isNotBlank(cacheControl)) {
+            String[] values = cacheControl.split(",");
+            for (String value: values) {
+                if (value.contains("max-age")) {
+                    String maxAgeString = StringUtils.substringAfter(value, "=").trim();
+                    return NumberUtils.isParsable(maxAgeString) ? NumberUtils.toLong(maxAgeString) : 0;
+                }
+            }
+        }         
+        return 0L;
+    }
+    
 }

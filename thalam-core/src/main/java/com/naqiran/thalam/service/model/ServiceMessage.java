@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 public class ServiceMessage {
     private String id;
     private String message;
+    private Object messageBody;
     @Builder.Default
     private ServiceMessageType type = ServiceMessageType.INFO;
     private Throwable exception;

@@ -20,6 +20,8 @@ public class BaseService {
     private String description;
     private boolean temp;
     
+    private FailureType failureType;
+    
     private String sourceExpression;
     private String targetExpression;
     
