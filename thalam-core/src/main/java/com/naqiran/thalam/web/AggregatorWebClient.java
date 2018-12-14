@@ -108,16 +108,11 @@ public interface AggregatorWebClient {
             final String url = request.getUri().toString();
             client = WebClient.create();
             final HttpMethod requestMethod = Optional.ofNullable(request.getRequestMethod()).orElse(HttpMethod.GET);
-            
-            
-            Mono<ServiceResponse> monoResponse = client.method(requestMethod).uri(request.getUri()).headers(addHeaders(request)).exchange()
-                                            .flatMap(resp -> (!resp.statusCode().isError() ? resp.bodyToMono(service.getResponseType()) : resp.bodyToMono(Map.class))
-                                            .map(responseBody -> createServiceResponse(request, responseBody, resp)));
-            return monoResponse.doOnError(err -> {
-                log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage());
-            }).onErrorResume(err -> {
-                return Mono.error(new ServiceException(err.getMessage()));
-            });
+            return client.method(requestMethod)
+                         .uri(request.getUri()).headers(addHeaders(request)).exchange()
+                         .flatMap(resp -> (!resp.statusCode().isError() ? resp.bodyToMono(service.getResponseType()) : resp.bodyToMono(Map.class))
+                                                         .map(responseBody -> createServiceResponse(request, responseBody, resp)))
+                         .doOnError(err -> log.error("Remote Request Error - Service Id: {} | URL: {} | Error: {}" , service.getId(), url, err.getMessage()));
         }
         
         public ServiceResponse createServiceResponse(final ServiceRequest request, final Object value, final ClientResponse clientResponse) {
@@ -137,6 +132,7 @@ public interface AggregatorWebClient {
                     response.setHeaders(headers);
                 }
             } else if (clientResponse.statusCode().is4xxClientError()){
+                response.setFailureType(service.getFailureType());
                 message.setMessageBody(value);
                 message.setType(ServiceMessageType.ERROR);
                 response.addMessage(message);

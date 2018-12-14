@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -182,6 +183,14 @@ public class CoreUtils {
     
     @SuppressWarnings("unchecked")
     public static ServiceResponse aggregateServiceRespone(final ServiceResponse aggregatedResponse, final ServiceResponse simpleResponse) {
+        
+        if (aggregatedResponse.getFailureType() == null) {
+            aggregatedResponse.setFailureType(simpleResponse.getFailureType());
+        } else if (simpleResponse.getFailureType() == null) {
+            aggregatedResponse.setFailureType(FailureType.FAIL_PARTIAL);
+        } 
+        
+        
         if (simpleResponse.getValue() != null) {
             ((ArrayList<Object>)aggregatedResponse.getValue()).add(simpleResponse.getValue());
         }
@@ -235,6 +244,14 @@ public class CoreUtils {
             }
         }         
         return 0L;
+    }
+    
+    public static Mono<ServiceResponse> defaultFallbackResponse(final Service service, Throwable throwable) {
+        return Mono.create(subs -> {
+            final ServiceResponse response = ServiceResponse.builder().failureType(service.getFailureType()).source(ThalamConstants.HYSTRIX_FALLBACK_SOURCE).build();
+            response.addMessage(ServiceMessage.builder().message(throwable.getMessage()).build());
+            subs.success(response);
+        });
     }
     
 }

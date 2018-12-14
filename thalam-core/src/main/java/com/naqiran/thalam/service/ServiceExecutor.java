@@ -1,18 +1,22 @@
 package com.naqiran.thalam.service;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.netflix.hystrix.HystrixCommands;
 import org.springframework.stereotype.Component;
 
 import com.naqiran.thalam.cache.AggregatorCacheService;
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.BaseService;
 import com.naqiran.thalam.configuration.ExecutionType;
+import com.naqiran.thalam.configuration.FailureType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceDictionary;
 import com.naqiran.thalam.configuration.ServiceGroup;
@@ -53,6 +57,9 @@ public class ServiceExecutor {
     }
     
     public Mono<ServiceResponse> getMonoServiceResponse(final BaseService service, final ServiceRequest originalRequest, final ServiceResponse previousResponse) {
+        if (previousResponse != null && FailureType.FAIL_ALL.equals(previousResponse.getFailureType())) {
+            return Mono.just(ServiceResponse.builder().failureType(FailureType.FAIL_ALL).build());
+        }
         if (service instanceof Service) {
             return executeRequest((Service) service, originalRequest, previousResponse);
         } else if (service instanceof ServiceGroup){
@@ -69,7 +76,7 @@ public class ServiceExecutor {
             final List<Mono<ServiceResponse>> responses = forkedRequests.map(forkedRequest -> getMonoServiceResponse(serviceGroup.getService(), forkedRequest, null))
                                             .collect(Collectors.toList());
             return Flux.merge(responses).collectList().flatMap(respList -> {
-                return Mono.just(respList.stream().reduce(CoreUtils.createServiceResponse(ThalamConstants.FORK_LIST_SOURCE, "Fork Request"), (aggResponse,simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
+                return Mono.just(respList.stream().reduce(CoreUtils.createServiceResponse(ThalamConstants.FORK_LIST_SOURCE, "Fork Request"), (aggResponse, simpleResponse) -> CoreUtils.aggregateServiceRespone(aggResponse, simpleResponse)));
             });
         } else if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
             final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
@@ -78,7 +85,7 @@ public class ServiceExecutor {
             Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(zipType, "Dummy ZIP Response");
             if (CollectionUtils.isNotEmpty(services)) {
                 for (BaseService service: services) {
-                    monoResponse = monoResponse.zipWhen(resp -> getMonoServiceResponse(service,preparedRequest, resp), service.getZip());
+                    monoResponse = monoResponse.zipWhen(resp -> getMonoServiceResponse(service, preparedRequest, resp), service.getZip());
                 }
                 return monoResponse;
             } else {
@@ -114,15 +121,19 @@ public class ServiceExecutor {
         //Map the Service Response after caching.
         if (isValid) {
             if (isCached) {
-                return cacheService.getValue(clonedRequest, () -> client.executeRequest(clonedRequest)).map(response -> service.getMap().apply(response));
+                return cacheService.getValue(clonedRequest, () -> wrapCircuitBreaker(service, client.executeRequest(clonedRequest)).map(response -> service.getMap().apply(response)));
             } else {
-                return client.executeRequest(clonedRequest).map(response -> service.getMap().apply(response));
+                return wrapCircuitBreaker(service, client.executeRequest(clonedRequest).map(response -> service.getMap().apply(response)));
             }
         }
         return CoreUtils.createMonoServiceResponse(ThalamConstants.VALIDATION_FAILED, null);
     }
     
-    public void wrapCircuitBreaker() {
-        
+    public Mono<ServiceResponse> wrapCircuitBreaker(final Service service, final Mono<ServiceResponse> response) {
+        final Function<Throwable, Publisher<ServiceResponse>> fallbackMethod = (throwable) -> CoreUtils.defaultFallbackResponse(service, throwable);
+        return HystrixCommands.from(response)
+                                        .fallback(fallbackMethod)
+                                        .commandName(StringUtils.defaultString(service.getCircuitBreakerId(), service.getId()))
+                                        .toMono();
     }
 }
