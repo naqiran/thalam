@@ -16,7 +16,7 @@ import lombok.EqualsAndHashCode;
 public class ServiceGroup  extends BaseService {
     private ExecutionType executionType;
     private BaseService service;
-    private String zipType;
+    private ZipType zipType;
     private List<BaseService> services;
     private String forkAttribute;
     private int maxConcurrent;

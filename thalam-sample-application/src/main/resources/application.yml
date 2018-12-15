@@ -17,45 +17,40 @@ aggregator:
         forkAttribute: petId
       - id: pet-serial-service
         executionType: SERIAL
-        zipType: zip-with-map
         services:
-          - pet-service1
-          - pet-service2
+          - pet-service
           - pet-parallel-service
       - id: pet-parallel-service
         executionType: PARALLEL
         sourceExpression: parallel-childs
-        zipType: zip-with-map
         services:
           - pet-service1
           - pet-service2     
     services:
       - id: pet-service
-        cacheEnabled: true
+        cacheEnabled: false
         cacheKeyFormat: parameters['petId']
         cacheName: pet-cache
         baseUrl: https://petstore.swagger.io
-        path: "/v2/pet/{petId}"
+        path: "/v2/pet/1A"
         requestMethod: POST
         ttl: 10m
         preValidateExpression: "parameters['petId'] != null"
       - id: pet-service1
-        cacheEnabled: true
+        cacheEnabled: false
         cacheKeyFormat: parameters['petId']
         cacheName: pet-cache
         baseUrl: https://petstore.swagger.io
-        path: "/v2/pet/{petId}"
+        path: "/v2/pet/3"
         requestMethod: POST
         ttl: 10m
         sourceExpression: childPet
-        preValidateExpression: "parameters['petId'] != null"
       - id: pet-service2
-        cacheEnabled: true
+        cacheEnabled: false
         cacheKeyFormat: parameters['petId']
         cacheName: pet-cache
         baseUrl: https://petstore.swagger.io
-        path: "/v2/pet/{petId}"
+        path: "/v2/pet/4"
         requestMethod: POST
         ttl: 10m
         sourceExpression: childPet1
-        preValidateExpression: "parameters['petId'] != null"   

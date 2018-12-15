@@ -137,6 +137,22 @@ public class ServiceDictionaryBuilder {
                 if (group.getServices() != null) {
                     group.setServices(group.getServices().stream().map(svc -> getServiceById(svc)).collect(Collectors.toList()));
                 }
+                
+                if (group.getExecutionType() == null) {
+                    group.setExecutionType(ExecutionType.SERIAL);
+                }
+                if (group.getZipType() == null) {
+                    if (ExecutionType.SERIAL.equals(group.getExecutionType())) {
+                        group.setZipType(ZipType.CARRY_OVER);
+                    } else if (ExecutionType.PARALLEL.equals(group.getExecutionType())) {
+                        group.setZipType(ZipType.MAP);
+                    } else if (ExecutionType.FORK.equals(group.getExecutionType())) {
+                        group.setZipType(ZipType.FORK);
+                    } else {
+                        group.setZipType(ZipType.MAP);
+                    }
+                }
+                
             }
         }
     }
@@ -241,7 +257,7 @@ public class ServiceDictionaryBuilder {
             final ExpressionParser parser = new SpelExpressionParser();
             final Expression targetExpression = service.getTargetExpression() != null ? parser.parseExpression(service.getTargetExpression()) : null;
             final ServiceResponse mergedResponse = mergeResponse(sourceResponse, targetResponse);
-            if (sourceResponse != null && targetResponse != null) {
+            if (sourceResponse != null && targetResponse != null && sourceResponse.getValue() != null && targetResponse.getValue() != null) {
                 try {
                     if (StringUtils.isBlank(service.getSourceExpression()) && StringUtils.isBlank(service.getTargetExpression())) {
                         log.warn("No Zipping Information: {}", service.getId());
@@ -258,24 +274,27 @@ public class ServiceDictionaryBuilder {
                             sourceExpression.setValue(sourceResponse.getValue(), targetValue);
                         }
                         mergedResponse.setValue(sourceResponse.getValue());
-                    } else if (targetResponse.getValue() != null) {
-                        mergedResponse.setValue(targetResponse.getValue());
-                    } else if (sourceResponse.getValue() != null) {
-                        mergedResponse.setValue(sourceResponse.getValue());
-                    }
+                    } 
                 } catch (Exception e) {
                     ServiceMessage serviceMessage = ServiceMessage.builder().message("Exception in Zipping: " + e.getMessage()).exception(e).build();
                     mergedResponse.addMessage(serviceMessage);
                 }
-            } 
+            } else if (targetResponse.getValue() != null) {
+                mergedResponse.setValue(targetResponse.getValue());
+            } else if (sourceResponse.getValue() != null) {
+                mergedResponse.setValue(sourceResponse.getValue());
+            }
+            if (mergedResponse.getValue() == null) {
+                log.debug("Value is getting null here {}", service.getId());
+            }
             return mergedResponse;
         };
     }
 
     private ServiceResponse mergeResponse(final ServiceResponse sourceResponse, final ServiceResponse targetResponse) {
-        final ServiceResponse zippedResponse = CoreUtils.createServiceResponse(ThalamConstants.ZIP_DEFAULT_SOURCE, null);
+        final ServiceResponse zippedResponse = CoreUtils.createServiceResponse(ThalamConstants.ZIP_DEFAULT_SOURCE, ZipType.NONE, null);
         zippedResponse.setMessages(new ArrayList<>());
-        if (CollectionUtils.isNotEmpty(sourceResponse.getMessages()) && !ThalamConstants.ZIP_DUMMY_SOURCE.equals(sourceResponse.getSource())) {
+        if (CollectionUtils.isNotEmpty(sourceResponse.getMessages())) {
             zippedResponse.getMessages().addAll(sourceResponse.getMessages());
         }
         if (CollectionUtils.isNotEmpty(targetResponse.getMessages())) {

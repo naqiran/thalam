@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -30,6 +29,7 @@ import com.naqiran.thalam.configuration.AttributeType;
 import com.naqiran.thalam.configuration.FailureType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceGroup;
+import com.naqiran.thalam.configuration.ZipType;
 import com.naqiran.thalam.constants.ThalamConstants;
 import com.naqiran.thalam.service.model.ServiceMessage;
 import com.naqiran.thalam.service.model.ServiceRequest;
@@ -200,20 +200,22 @@ public class CoreUtils {
         return aggregatedResponse;
     }
     
-    public static Mono<ServiceResponse> createMonoServiceResponse(final String source, final String message) {
-        return Mono.just(createServiceResponse(source,message));
+    public static Mono<ServiceResponse> createMonoServiceResponse(final String source, ZipType zipType, Object value) {
+        return Mono.just(createServiceResponse(source, zipType, value));
     }
     
-    public static ServiceResponse createServiceResponse(final String source, final String message) {
+    public static ServiceResponse createServiceResponse(final String source, ZipType zipType, Object value) {
         ServiceResponse response = ServiceResponse.builder()
                                         .source(StringUtils.defaultString(source, ThalamConstants.DUMMY_SOURCE)).build();
-        if (StringUtils.isNotBlank(message)) {
-            response.addMessage(ServiceMessage.builder().message(message).build());
+        if (StringUtils.isNotBlank(source)) {
+            response.addMessage(ServiceMessage.builder().message(source).build());
         }
-        if (ThalamConstants.ZIP_MAP_SOURCE.equals(source)) {
+        if (ZipType.MAP.equals(zipType)) {
             response.setValue(new HashMap<String,Object>());
-        } else if (ThalamConstants.FORK_LIST_SOURCE.equals(source)) {
+        } else if (ZipType.FORK.equals(zipType)) {
             response.setValue(new ArrayList<>());
+        } else if (ZipType.CARRY_OVER.equals(zipType) && value instanceof ServiceResponse) {
+            response.setValue(((ServiceResponse)value).getValue());
         }
         return response;
     }
