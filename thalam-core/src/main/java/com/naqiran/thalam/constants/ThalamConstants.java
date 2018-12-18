@@ -18,4 +18,6 @@ public class ThalamConstants {
     public static final String FORKING_ERROR_SOURCE = "forking-error-source";
     public static final String VALIDATION_FAILED = "validation-failed";
     public static final String HYSTRIX_FALLBACK_SOURCE = "hystrix-fallback-response";
+    public static final String SERIAL_SOURCE = "serial-response";
+    public static final String PARALLEL_SOURCE = "parallel-response";
 }

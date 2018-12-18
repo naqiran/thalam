@@ -81,7 +81,7 @@ public class ServiceExecutor {
         } else if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
             final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
             final List<BaseService> services = serviceGroup.getServices();
-            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse("Serial Source", serviceGroup, previousResponse);
+            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(ThalamConstants.SERIAL_SOURCE, serviceGroup, previousResponse);
             if (CollectionUtils.isNotEmpty(services)) {
                 for (BaseService service: services) {
                     monoResponse = monoResponse.zipWhen(resp -> execute(service, preparedRequest, resp), service.getZip());
@@ -93,7 +93,7 @@ public class ServiceExecutor {
         } else if (ExecutionType.PARALLEL.equals(serviceGroup.getExecutionType())) {
             final ServiceRequest preparedRequest = serviceGroup.getPrepare().apply(request).findFirst().orElse(null);
             final List<BaseService> services = serviceGroup.getServices();
-            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse("Parallel Source", serviceGroup, previousResponse);
+            Mono<ServiceResponse> monoResponse = CoreUtils.createMonoServiceResponse(ThalamConstants.PARALLEL_SOURCE, serviceGroup, previousResponse);
             if (CollectionUtils.isNotEmpty(services)) {
                 for (BaseService service: services) {
                     monoResponse = monoResponse.zipWith(execute((Service) service,preparedRequest, null), service.getZip());

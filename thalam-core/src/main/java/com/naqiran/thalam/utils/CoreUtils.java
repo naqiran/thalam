@@ -202,7 +202,7 @@ public class CoreUtils {
     }
     
     public static Mono<ServiceResponse> createMonoServiceResponse(final String source, BaseService service, Object value) {
-        return Mono.just(createServiceResponse(source, service, value));
+        return Mono.fromSupplier(() -> createServiceResponse(source, service, value));
     }
     
     public static ServiceResponse createServiceResponse(final String source, final BaseService service, final Object value) {

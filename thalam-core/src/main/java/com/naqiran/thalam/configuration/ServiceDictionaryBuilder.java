@@ -79,41 +79,18 @@ public class ServiceDictionaryBuilder {
             }
         });
 
-        injectDefaultOrConfigurableMethods();
+        initialize();
     }
 
-    private void injectDefaultOrConfigurableMethods() {
+    private void initialize() {
         if (CollectionUtils.isNotEmpty(dictionary.getServiceMap().entrySet())) {
             for (BaseService baseService : dictionary.getServiceMap().values()) {
                 if (baseService instanceof Service) {
-                    Service service = (Service) baseService;
-                    if (CronSequenceGenerator.isValidExpression(service.getTtlExpression())) {
-                        service.setTtlCron(new CronSequenceGenerator(service.getTtlExpression()));
-                    }
-                    if (service.getPrepare() == null) {
-                        service.setPrepare(Function.identity());
-                    }
+                    initializeService((Service) baseService);
                 } else if (baseService instanceof ServiceGroup) {
-                    ServiceGroup group = (ServiceGroup) baseService;
-                    
-                    if (group.getPrepare() == null && StringUtils.isNotBlank(group.getForkAttribute())) {
-                        group.setPrepare(request -> {
-                            String parameter = request.getParameters().get(group.getForkAttribute());
-                            if (StringUtils.isNotBlank(parameter)) {
-                                return Stream.of(parameter.split(",")).map(splitParam -> {
-                                    final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(group, request, null);
-                                    clonedRequest.getParameters().put(group.getForkAttribute(), splitParam);
-                                    return clonedRequest;
-                                });
-                            }
-                            return Stream.of(request);
-                        });
-                    }
-                    if (group.getPrepare() == null) {
-                        group.setPrepare(request -> Stream.of(request));
-                    }
+                    initializeServiceGroup((ServiceGroup) baseService);
                 }
-
+                //Initialize Common Types
                 if (baseService.getValidate() == null) {
                     baseService.setValidate(getDefaultValidateMethod(baseService));
                 }
@@ -125,37 +102,65 @@ public class ServiceDictionaryBuilder {
                 if (baseService.getZip() == null) {
                     baseService.setZip(getDefaultZipMethod(baseService));
                 }
-            }
-        }
-
-        if (CollectionUtils.isNotEmpty(dictionary.getServiceGroups())) {
-            for (ServiceGroup group : dictionary.getServiceGroups()) {
-                // Replace with the actual instance of the service.
-                if (group.getService() != null) {
-                    group.setService(getServiceById(group.getService()));
+                if (baseService.getFailureType() == null) {
+                    baseService.setFailureType(FailureType.FAIL_SAFE);
                 }
-                if (group.getServices() != null) {
-                    group.setServices(group.getServices().stream().map(svc -> getServiceById(svc)).collect(Collectors.toList()));
-                }
-                
-                if (group.getExecutionType() == null) {
-                    group.setExecutionType(ExecutionType.SERIAL);
-                }
-                if (group.getZipType() == null) {
-                    if (ExecutionType.SERIAL.equals(group.getExecutionType())) {
-                        group.setZipType(ZipType.CARRY_OVER);
-                    } else if (ExecutionType.PARALLEL.equals(group.getExecutionType())) {
-                        group.setZipType(ZipType.MAP);
-                    } else if (ExecutionType.FORK.equals(group.getExecutionType())) {
-                        group.setZipType(ZipType.FORK);
-                    } else {
-                        group.setZipType(ZipType.MAP);
-                    }
-                }
-                
             }
         }
     }
+    
+    public void initializeService(final Service service) {
+        if (CronSequenceGenerator.isValidExpression(service.getTtlExpression())) {
+            service.setTtlCron(new CronSequenceGenerator(service.getTtlExpression()));
+        }
+        if (service.getPrepare() == null) {
+            service.setPrepare(Function.identity());
+        }
+    }
+    
+    public void initializeServiceGroup(final ServiceGroup serviceGroup) {
+     // Replace with the actual instance of the service.
+        if (serviceGroup.getService() != null) {
+            serviceGroup.setService(getServiceById(serviceGroup.getService()));
+        }
+        if (serviceGroup.getServices() != null) {
+            serviceGroup.setServices(serviceGroup.getServices().stream().map(svc -> getServiceById(svc)).collect(Collectors.toList()));
+        }
+        
+        if (serviceGroup.getExecutionType() == null) {
+            serviceGroup.setExecutionType(ExecutionType.SERIAL);
+        }
+        if (serviceGroup.getZipType() == null) {
+            if (ExecutionType.SERIAL.equals(serviceGroup.getExecutionType())) {
+                serviceGroup.setZipType(ZipType.CARRY_OVER);
+            } else if (ExecutionType.PARALLEL.equals(serviceGroup.getExecutionType())) {
+                serviceGroup.setZipType(ZipType.MAP);
+            } else if (ExecutionType.FORK.equals(serviceGroup.getExecutionType())) {
+                serviceGroup.setZipType(ZipType.FORK);
+            } else {
+                serviceGroup.setZipType(ZipType.MAP);
+            }
+        }
+        
+        if (serviceGroup.getPrepare() == null && StringUtils.isNotBlank(serviceGroup.getForkAttribute())) {
+            serviceGroup.setPrepare(request -> {
+                String parameter = request.getParameters().get(serviceGroup.getForkAttribute());
+                if (StringUtils.isNotBlank(parameter)) {
+                    return Stream.of(parameter.split(",")).map(splitParam -> {
+                        final ServiceRequest clonedRequest = CoreUtils.cloneServiceRequestForServiceGroup(serviceGroup, request, null);
+                        clonedRequest.getParameters().put(serviceGroup.getForkAttribute(), splitParam);
+                        return clonedRequest;
+                    });
+                }
+                return Stream.of(request);
+            });
+        }
+        if (serviceGroup.getPrepare() == null) {
+            serviceGroup.setPrepare(request -> Stream.of(request));
+        }
+    }
+    
+    
 
     private BaseService getServiceById(final BaseService tempService) {
         return Optional.ofNullable(dictionary.getServiceById(tempService.getId(), tempService.getVersion())).orElseThrow(
