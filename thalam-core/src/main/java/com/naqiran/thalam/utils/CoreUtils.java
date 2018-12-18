@@ -26,6 +26,7 @@ import org.springframework.util.MultiValueMap;
 import com.naqiran.thalam.configuration.AggregatorCoreConfiguration;
 import com.naqiran.thalam.configuration.Attribute;
 import com.naqiran.thalam.configuration.AttributeType;
+import com.naqiran.thalam.configuration.BaseService;
 import com.naqiran.thalam.configuration.FailureType;
 import com.naqiran.thalam.configuration.Service;
 import com.naqiran.thalam.configuration.ServiceGroup;
@@ -200,15 +201,17 @@ public class CoreUtils {
         return aggregatedResponse;
     }
     
-    public static Mono<ServiceResponse> createMonoServiceResponse(final String source, ZipType zipType, Object value) {
-        return Mono.just(createServiceResponse(source, zipType, value));
+    public static Mono<ServiceResponse> createMonoServiceResponse(final String source, BaseService service, Object value) {
+        return Mono.just(createServiceResponse(source, service, value));
     }
     
-    public static ServiceResponse createServiceResponse(final String source, ZipType zipType, Object value) {
+    public static ServiceResponse createServiceResponse(final String source, final BaseService service, final Object value) {
         ServiceResponse response = ServiceResponse.builder()
                                         .source(StringUtils.defaultString(source, ThalamConstants.DUMMY_SOURCE)).build();
+        ZipType zipType = service != null ? service.getZipType() : ZipType.NONE;
         if (StringUtils.isNotBlank(source)) {
-            response.addMessage(ServiceMessage.builder().message(source).build());
+            final String serviceId = service != null ? StringUtils.defaultString(service.getId()): StringUtils.EMPTY;
+            response.addMessage(ServiceMessage.builder().id(source).message(serviceId).build());
         }
         if (ZipType.MAP.equals(zipType)) {
             response.setValue(new HashMap<String,Object>());

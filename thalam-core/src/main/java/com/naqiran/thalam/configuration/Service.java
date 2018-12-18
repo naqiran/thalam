@@ -33,6 +33,7 @@ public class Service extends BaseService {
     private boolean addAllParam;
     private boolean secure;
     private String circuitBreakerId;
+    private boolean circuitBreakerEnabled = true;
     private boolean cacheEnabled;
     private String cacheName;
     private String cacheKeyFormat;

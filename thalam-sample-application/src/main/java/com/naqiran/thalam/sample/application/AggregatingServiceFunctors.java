@@ -1,7 +1,5 @@
 package com.naqiran.thalam.sample.application;
 
-import java.util.stream.Stream;
-
 import org.springframework.stereotype.Component;
 
 import com.naqiran.thalam.annotations.AggregatingFunctors;
@@ -24,7 +22,7 @@ public class AggregatingServiceFunctors {
         return request;
     }
     
-    @Validate(service = "pet-service", version = "v1")
+    @Validate(service = "pet-service1", version = "v1")
     public Boolean validate(final ServiceRequest request) {
         log.info("This is the validate method for pet service");
         return true;
@@ -34,10 +32,5 @@ public class AggregatingServiceFunctors {
     public ServiceResponse map(final ServiceResponse response) {
         log.info("This is the Map method for pet service");
         return response;
-    }
-    
-    public Stream<ServiceRequest> prepareFork(final ServiceRequest request) {
-        log.info("This is the Prepare  method for pet fork service");
-        return Stream.of(request);
     }
 }

@@ -29,7 +29,7 @@ import lombok.Data;
 public class AggregatorCoreConfiguration {
     private AggregatorCoreContext context;
     private AggregatorEnvironmentContext environment = new AggregatorEnvironmentContext();
-    private WebContext web;
+    private WebContext web = new WebContext();
     private AggregatorCacheContext cache = new AggregatorCacheContext();
     
     @Data
@@ -42,6 +42,7 @@ public class AggregatorCoreConfiguration {
     public static class WebContext {
         private List<Attribute> headers;
         private List<Attribute> parameters;
+        private boolean circuitBreakerEnabled = true;
     }
     
     @Data

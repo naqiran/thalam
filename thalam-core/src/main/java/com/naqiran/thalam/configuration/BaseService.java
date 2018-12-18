@@ -26,6 +26,7 @@ public class BaseService {
     private String targetExpression;
     
     private String preValidateExpression;
+    private ZipType zipType;
     
     private Function<ServiceRequest, Boolean> validate;
     private Function<ServiceResponse, ServiceResponse> map;

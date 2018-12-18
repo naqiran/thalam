@@ -1,11 +1,12 @@
-management:
-  endpoints:
-    web:
-      base-path: manage
-         
 aggregator:
   context:
     path: "/aggregator"
+  web:
+    circuitBreakerEnabled: true
+    headers:
+      - name: accept
+        value: application/json
+        type: OVERRIDE
   cache:
     enabled: true  
   dictionary:
@@ -32,7 +33,7 @@ aggregator:
         cacheKeyFormat: parameters['petId']
         cacheName: pet-cache
         baseUrl: https://petstore.swagger.io
-        path: "/v2/pet/1A"
+        path: "/v2/pet/{petId}"
         requestMethod: POST
         ttl: 10m
         preValidateExpression: "parameters['petId'] != null"
