@@ -39,7 +39,9 @@ public interface AggregatorCacheService {
     
     @Nullable CacheWrapper getValueFromCache(final String cacheKey, final String cacheName);
     
-    void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
+    public void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
+    
+    public void evictCacheByKey(final String cacheKey, final String cacheName);
     
     public default Mono<ServiceResponse> getValue(final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
         final Service service = request.getService();
@@ -130,21 +132,29 @@ public interface AggregatorCacheService {
             return cacheManager.getCache(cacheName);
         }
 
-        public void setCacheManager(CacheManager cacheManager) {
+        public void setCacheManager(final CacheManager cacheManager) {
             this.cacheManager = cacheManager;
         }
 
         @Override
-        public @Nullable CacheWrapper getValueFromCache(String cacheKey, final String cacheName) {
+        public @Nullable CacheWrapper getValueFromCache(final String cacheKey, final String cacheName) {
             Cache cache = getCache(cacheName);
             return cache != null ? cache.get(cacheKey, CacheWrapper.class) : null;
         }
 
         @Override
-        public void putValueinCache(String cacheKey, final String cacheName, CacheWrapper response) {
+        public void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper response) {
             final Cache cache = getCache(cacheName);
             if (cache != null) {
                 cache.put(cacheKey, response);
+            }
+        }
+        
+        @Override
+        public void evictCacheByKey(final String cacheKey, final String cacheName) {
+            final Cache cache = getCache(cacheName);
+            if (cache != null) {
+                cache.evict(cacheKey);
             }
         }
     }
