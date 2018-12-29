@@ -27,7 +27,7 @@ import lombok.Data;
 @Configuration
 @ConfigurationProperties(prefix = "aggregator")
 public class AggregatorCoreConfiguration {
-    private AggregatorCoreContext context;
+    private AggregatorCoreContext context = new AggregatorCoreContext();
     private AggregatorEnvironmentContext environment = new AggregatorEnvironmentContext();
     private WebContext web = new WebContext();
     private AggregatorCacheContext cache = new AggregatorCacheContext();
