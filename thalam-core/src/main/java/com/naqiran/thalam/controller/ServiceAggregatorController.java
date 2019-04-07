@@ -59,11 +59,8 @@ public class ServiceAggregatorController {
     
     @ExceptionHandler(Exception.class)
     public ServiceResponse errorResponse(final Exception exception) {
-        exception.printStackTrace();
         final ServiceResponse response = ServiceResponse.builder().source(this.getClass().getName()).build();
-        final ServiceMessage message = new ServiceMessage();
-        message.setMessage(exception.getMessage());
-        response.addMessage(message);
+        response.addMessage(exception.getMessage());
         return response;
     }
 }

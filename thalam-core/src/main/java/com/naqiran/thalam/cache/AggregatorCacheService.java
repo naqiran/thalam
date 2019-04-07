@@ -35,15 +35,15 @@ import reactor.core.publisher.Mono;
  */
 public interface AggregatorCacheService {
 
-    public static final Logger log = LoggerFactory.getLogger(AggregatorCacheService.class); 
+    Logger log = LoggerFactory.getLogger(AggregatorCacheService.class);
     
     @Nullable CacheWrapper getValueFromCache(final String cacheKey, final String cacheName);
     
-    public void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
+    void putValueinCache(final String cacheKey, final String cacheName, final CacheWrapper wrapper);
     
-    public void evictCacheByKey(final String cacheKey, final String cacheName);
+    void evictCacheByKey(final String cacheKey, final String cacheName);
     
-    public default Mono<ServiceResponse> getValue(final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
+    default Mono<ServiceResponse> getValue(final ServiceRequest request, Supplier<Mono<ServiceResponse>> remoteSupplier) {
         final Service service = request.getService();
         Assert.notNull(service, "Service should not be empty for getting the value from cache");
         final String cacheKey = getCacheKey(service, request);
@@ -59,22 +59,21 @@ public interface AggregatorCacheService {
         return monoResponse;
     }
     
-    public default boolean isCached(final Service service) {
+    default boolean isCached(final Service service) {
         return service.isCacheEnabled();
     }
     
-    public default String getCacheKey(final Service service, final ServiceRequest request) {
+    default String getCacheKey(final Service service, final ServiceRequest request) {
         final String cacheKeyFormat = service.getCacheKeyFormat();
         if (StringUtils.isNotBlank(cacheKeyFormat)) {
             final List<String> keys = Arrays.asList(cacheKeyFormat.split(";"));
-            return keys.stream().map(key -> {
-                return CoreUtils.evaluateSPEL(key, request, String.class);
-            }).filter(Objects::nonNull).collect(Collectors.joining("-"));
+            return keys.stream().map(key -> CoreUtils.evaluateSPEL(key, request, String.class))
+                .filter(Objects::nonNull).collect(Collectors.joining("-"));
         }
         return service.getId();
     }
     
-    public default CacheWrapper getCacheWrapper(final ServiceResponse response) {
+    default CacheWrapper getCacheWrapper(final ServiceResponse response) {
         CacheWrapper wrapper = null;
         if (response != null) {
             wrapper = new CacheWrapper();
@@ -89,7 +88,7 @@ public interface AggregatorCacheService {
         return wrapper;
     }
     
-    public default ServiceResponse getResponseFromWrapper(final Service service, final String cacheKey, final CacheWrapper wrapper) {
+    default ServiceResponse getResponseFromWrapper(final Service service, final String cacheKey, final CacheWrapper wrapper) {
         ServiceResponse serviceResponse = null;
         if (wrapper != null) {
             log.info("Cache Hit - Service Id: {} | Cache Key: {} | Cached Time: {} | Expiry Time: {}", service.getId(), cacheKey, 
@@ -109,7 +108,7 @@ public interface AggregatorCacheService {
         return serviceResponse;
     }
     
-    static class DefaultAggregatorCacheService implements AggregatorCacheService {
+    class DefaultAggregatorCacheService implements AggregatorCacheService {
         
         @Autowired
         private AggregatorCoreConfiguration coreConfiguration;

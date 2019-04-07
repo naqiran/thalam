@@ -80,6 +80,4 @@ public class CacheController {
         response.put("message", "Added the record in the Cache");
         return ResponseEntity.ok(response);
     }
-    
-    
 }

@@ -40,12 +40,16 @@ public class ServiceResponse {
     private Instant expiryTime;
     private List<ServiceMessage> messages;
     
-    public void addMessage(ServiceMessage serviceMessage) {
+    public void addMessage(final ServiceMessage serviceMessage) {
         if (serviceMessage != null) {
             if (CollectionUtils.isEmpty(messages)) {
                 messages = new ArrayList<>();
             }
             messages.add(serviceMessage);
         }
+    }
+
+    public void addMessage(final String message) {
+        addMessage(ServiceMessage.builder().message(message).build());
     }
 }
