@@ -8,6 +8,11 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.Map.Entry;
 
+import com.naqiran.thalam.configuration.CanaryResource;
+import com.naqiran.thalam.configuration.CanaryTemplate;
+import com.naqiran.thalam.configuration.ServiceDictionary;
+import com.naqiran.thalam.service.MetricsService;
+import com.naqiran.thalam.utils.CanaryUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,15 +67,11 @@ public interface AggregatorWebClient {
     
     /**
      * Create the URL from the Discovery Manager otherwise from the Service Configuration.
-     * 
-     * @param service
-     * @param requestParam
-     * @param pathParam
-     * @return String
+     * @param request
      */
     default void decorateServiceURL(final ServiceRequest request) {
-        Service service = request.getService();
-        final UriComponentsBuilder builder = getBaseUrl(service);
+        final Service service = request.getService();
+        final UriComponentsBuilder builder = getBaseUrl(request);
         Map<String,String> paramMap = request.getParameters();
         if (service.isAddAllParam() && MapUtils.isNotEmpty(paramMap)) {
             for (Entry<String, String> entry : paramMap.entrySet()) {
@@ -83,7 +84,9 @@ public interface AggregatorWebClient {
         request.setUri(builder.buildAndExpand(paramMap).encode().toUri());
     }
     
-    default UriComponentsBuilder getBaseUrl(final Service service) {
+    default UriComponentsBuilder getBaseUrl(final ServiceRequest serviceRequest) {
+        final Service service = serviceRequest.getService();
+        Assert.notNull(service, "Service should not be empty on a request");
         Assert.hasText(service.getBaseUrl(), "Base URL should not be empty: " + service.getId());
         return UriComponentsBuilder.fromHttpUrl(service.getBaseUrl())
                                         .path(StringUtils.substringBefore(service.getPath(), "?"))
@@ -93,10 +96,16 @@ public interface AggregatorWebClient {
 
     @Slf4j
     @Data
-    public static class DefaultAggregatorWebClient implements AggregatorWebClient {
+    class DefaultAggregatorWebClient implements AggregatorWebClient {
 
         @Autowired(required = false)
         private LoadBalancerClient lbClient;
+
+        @Autowired
+        private ServiceDictionary dictionary;
+
+        @Autowired
+        private MetricsService metricsService;
         
         private WebClient client = WebClient.create();
         
@@ -143,16 +152,29 @@ public interface AggregatorWebClient {
         }
         
         public Consumer<HttpHeaders> addHeaders(final ServiceRequest serviceRequest) {
-            return (httpHeaders) -> {
-                serviceRequest.getHeaders().entrySet().stream().forEach(entry -> httpHeaders.add(entry.getKey(),entry.getValue()));
-            };
+            return httpHeaders -> serviceRequest.getHeaders().entrySet().stream().forEach(entry -> httpHeaders.add(entry.getKey(),entry.getValue()));
         }
-        
+
         @Override
-        public UriComponentsBuilder getBaseUrl(final Service service) {
-            UriComponentsBuilder builder = AggregatorWebClient.super.getBaseUrl(service);
+        public UriComponentsBuilder getBaseUrl(final ServiceRequest serviceRequest) {
+            UriComponentsBuilder builder = AggregatorWebClient.super.getBaseUrl(serviceRequest);
+
+            Service service  = serviceRequest.getService();
+            String discoveryId = Optional.ofNullable(service.getDiscoveryId()).orElse(service.getId());
+
+            if (StringUtils.isNotBlank(service.getCanaryTemplateId())) {
+                final CanaryTemplate template = dictionary.getCanaryTemplateById(service.getCanaryTemplateId());
+                if (template != null) {
+                    double counter = metricsService.countEvent("DISCOVERY_REQUEST", service.getId());
+                    CanaryResource canaryResource = CanaryUtils.computeWeightedRoundRobin(service, serviceRequest, counter);
+                    if (canaryResource != null) {
+                        discoveryId = canaryResource.getId();
+                    }
+                }
+            }
+
             if (StringUtils.isNotBlank(service.getPath())) {
-                final ServiceInstance instance = lbClient.choose(Optional.ofNullable(service.getDiscoveryId()).orElse(service.getId()));
+                final ServiceInstance instance = lbClient.choose(discoveryId);
                 if (instance != null) {
                     builder.host(instance.getHost());
                     if (instance.getPort() > 0) {
@@ -162,6 +184,5 @@ public interface AggregatorWebClient {
             }
             return builder;
         }
-        
     }
 }

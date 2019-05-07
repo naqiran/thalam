@@ -9,10 +9,11 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.validation.Valid;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
-import org.springframework.util.CollectionUtils;
+
 import org.springframework.validation.annotation.Validated;
 
 import lombok.Data;
@@ -37,6 +38,9 @@ public class ServiceDictionary {
     
     @Valid
     private List<ServiceGroup> serviceGroups;
+
+    private List<CanaryTemplate> canaryTemplates;
+
     private Map<String,BaseService> serviceMap;
     private Map<String,ServiceGroup> serviceGroupMap;
     
@@ -44,13 +48,13 @@ public class ServiceDictionary {
     private void buildServices() {
         log.info("Initializing the Service Dictionary {}", name);
         serviceMap = new HashMap<String,BaseService>();
-        if (!CollectionUtils.isEmpty(services)) {
+        if (CollectionUtils.isNotEmpty(services)) {
             log.info("******************** Services ******************************");
             serviceMap.putAll(services.stream().peek(service -> log.info("{}", service))
                                             .collect(Collectors.toMap(Service::getId, Function.identity())));
             
         } 
-        if (!CollectionUtils.isEmpty(serviceGroups)) {
+        if (CollectionUtils.isNotEmpty(serviceGroups)) {
             log.info("******************** Service Groups ************************");
             serviceMap.putAll(serviceGroups.stream().peek(serviceGroup -> log.info("{}", serviceGroup))
                                             .collect(Collectors.toMap(ServiceGroup::getId, Function.identity())));
@@ -68,5 +72,12 @@ public class ServiceDictionary {
      */
     public @Nullable BaseService getServiceById(final String id, final String version) {
         return serviceMap.get(id);
+    }
+
+    public @Nullable CanaryTemplate getCanaryTemplateById(final String id) {
+        if (CollectionUtils.isNotEmpty(canaryTemplates)){
+            return canaryTemplates.stream().filter(template -> template.getId().equals(id)).findFirst().orElse(null);
+        }
+        return null;
     }
 }

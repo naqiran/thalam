@@ -31,6 +31,8 @@ public class BaseService {
     private Function<ServiceRequest, Boolean> validate;
     private Function<ServiceResponse, ServiceResponse> map;
     private BiFunction<ServiceResponse, ServiceResponse, ServiceResponse> zip;
+
+    private String canaryTemplateId;
     
     /**
      * Identity Constructor
