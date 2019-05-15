@@ -3,8 +3,4 @@
  */
 rootProject.name = 'thalam'
 
-include 'thalam-core'
-include 'thalam-sample-application'
-
-project(':thalam-core').projectDir = "$rootDir/thalam-core" as File
-project(':thalam-sample-application').projectDir = "$rootDir/thalam-sample-application" as File
+include 'thalam-core', 'thalam-sample-application'

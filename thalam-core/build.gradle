@@ -6,7 +6,7 @@ buildscript {
 }
 
 plugins {
-    id 'java'
+    id 'java-library'
     id 'eclipse'
     id 'idea'
     id 'org.springframework.boot'
@@ -26,6 +26,7 @@ dependencyManagement {
 }
 
 dependencies {
+    annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
     implementation("org.projectlombok:lombok:${lombokVersion}")
     implementation("org.apache.commons:commons-lang3:3.7")
     implementation("org.apache.commons:commons-collections4:4.2")

@@ -4,7 +4,7 @@ buildscript {
 }
 
 plugins {
-    id 'java'
+    id 'java-library'
     id 'eclipse'
     id 'idea'
 }
@@ -17,10 +17,10 @@ allprojects {
 
 subprojects{
     apply plugin: 'java'
-    apply plugin:'eclipse'
+    apply plugin: 'eclipse'
     apply plugin: 'idea'
 }
 
 dependencies {
-    implementation("org.projectlombok:lombok:${lombokVersion}")
+    annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
 }
